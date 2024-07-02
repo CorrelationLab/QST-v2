@@ -1,0 +1,32 @@
+File_Managment:
+	Validators:
+		- DONE validate by file extension
+		- DONE validate by regular expression
+
+	Directories and Files:
+		- DONE get all subdirectories of a given directory
+		- DONE get all files of all subdirectories of a given directory
+	
+	MetaData:
+		- DONE get Metadata information from path/String by given regular expression
+
+-> Combination of functions from 'Directories and Files' and 'Validators' allows to get every wanted Subset of files and subdirectories  
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+Handlers (Experimental):
+	- FIRST IMPLEMENTATION execute a function based on variables of a .mat file of given path and save the result again
+	- FIRST IMPLEMENTATION execute a function based on variables of a .mat file of given path and collect the result in a cell array.
+
+-> These handlers are still highly experimental and unstable, but they would allows to execute any given function on a set of files
