@@ -32,7 +32,7 @@ end
 % fill the matrix according to the indices
 M = Data(M);
 % execute modified gram schmidt
-Mcleaned = mgsog(M.');
+Mcleaned = QST.QuadratureCalculation.mgsog(M.');
 Mcleaned = Mcleaned.';
 % place the cleaned data in Datacleaned
 Datacleaned = Mcleaned(Delta+1:end,:);
