@@ -23,7 +23,7 @@ dispstat('Load LO data','timestamp','keepthis',0);
 [data8bitLO,configLO,~]= QST.QuadratureCalculation.load8BitBinary_FromArbPath(filenameLO,'dontsave');
 % 2.2 load LO + Signal
 dispstat('Load LO + Signal data','timestamp','keepthis',0);
-[data8bitSIG,configSIG,~]= QST.QuadratureCalculation.load8BitBinary_FromArbPath(filenameSIG,'dontsave');
+[data8bitSIG,configSIG,TimestampSIG]= QST.QuadratureCalculation.load8BitBinary_FromArbPath(filenameSIG,'dontsave');
 
 
 %% 3. compute Number of LO Photons
@@ -50,6 +50,7 @@ X = computeQuadratures(data8bitSIG(:,:,Channels),configSIG,CALIBRATION_CH1,DutyC
 
 
 [X1, X2, X3] = deal(0);
+PiezoInfos = struct([]);
 %% from now on each Channel individually
     for iCh = Channels
         dispstat(['Remove Detectorresponse from Channel ',num2str(iCh),'...'],'timestamp','keepthis',0);
@@ -63,14 +64,30 @@ X = computeQuadratures(data8bitSIG(:,:,Channels),configSIG,CALIBRATION_CH1,DutyC
         if RemoveDetectorResponse(iCh)
             Data = QST.QuadratureCalculation.RemoveDetectorResponse(Data,nMean_Min,Delta);
         end
+        % 4.5 cut the data in piezos according to the observed piezo movement if piezo was active on this channel
+        if ModulatedPhase(iCh)
+            [Data, PiezoShape, PiezoStartDirection,PiezoEdgeIndices] = QST.QuadratureCalculation.getPiezoSegments(Data,TimestampSIG);
+        else
+            PiezoShape = [1,length(Data)];
+            PiezoStartDirection = 0;
+        end
         %% asign the cleaned Data to the Channels
         switch iCh
             case 1
                 X1 = Data;
+                PiezoInfos.X1.Shape = PiezoShape;
+                PiezoInfos.X1.StartDirection = PiezoStartDirection;
+                PiezoInfos.X1.EdgeIndices = PiezoEdgeIndices;
             case 2
                 X2 = Data;
+                PiezoInfos.X2.Shape = PiezoShape;
+                PiezoInfos.X2.StartDirection = PiezoStartDirection;
+                PiezoInfos.X2.EdgeIndices = PiezoEdgeIndices;
             case 3
                 X3 = Data;
+                PiezoInfos.X3.Shape = PiezoShape;
+                PiezoInfos.X3.StartDirection = PiezoStartDirection;
+                PiezoInfos.X3.EdgeIndices = PiezoEdgeIndices;
         end
     end
 end
