@@ -1,4 +1,4 @@
-function [isValid,Files] = validateFiles_ByFileExtension(Files,Extension)
+function [isValid,Files] = validateFiles_ByExt(Files,Extension)
 %Function that returns a list of all files that have a matching file
 %extension
 

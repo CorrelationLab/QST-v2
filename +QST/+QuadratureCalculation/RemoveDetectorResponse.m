@@ -1,4 +1,4 @@
-function [Datacleaned] = RemoveDetectorResponse(Data,nMean_Min,Delta)
+function [Datacleaned] = removeDetectorResponse(Data,nMean_Min,Delta)
 % Data:         Correlated Data of one channel
 % nSeg:         Number of Elements in one segment
 % nMean_Min:    Minimal Number of elements used for the mean values

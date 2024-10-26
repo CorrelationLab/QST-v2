@@ -22,47 +22,53 @@ function prepareSeries(Directory, Channels,Offset,ModulatedPhase,RemoveDetectorR
         Directory;
         %Parameter:
         Channels;
-        Offset = ['Global','Global','Global'];
-        ModulatedPhase = [true,true,true];
-        RemoveDetectorResponse = [false,false,false];
+        Offset = ['Local','Local','Local'];
+        ModulatedPhase = [false,false,false];
+        RemoveDetectorResponse = [true,true,true];
         Options.IntegrationDutyCycle = 1/3;
         Options.nMean_Min = 1000000;
         Options.Delta = 50;
         %Token
         Options.Token_LOOnly = "LOonly";
         Options.Token_LOAndSignal = "LOwithSIG";
+        Options.UseLegacySyntax = false;
     end
     IntegrationDutyCycle = Options.IntegrationDutyCycle;
     nMean_Min = Options.nMean_Min;
     Delta = Options.Delta;
     Token_LOOnly = Options.Token_LOOnly;
     Token_LOAndSignal = Options.Token_LOAndSignal;
+    UseLegacySyntax = Options.UseLegacySyntax;
 
- 
-SubDirectories = QST.Files.Paths.getSubDirectories(Directory,LeafDirsOnly=true);
+%% 1. get all Subdirectories
+SubDirectories = QST.Files.Paths.getDirectoryPaths(Directory);
 
-for Dir = SubDirectories
-
-    %% Get FileNames
-    FileNames_Raw = QST.Files.Paths.getFilePathsFromFolder(Dir,FileTypes="*.raw");
-    if isempty(FileNames_Raw)
-        continue
-    end
-    
+%% 2. calculate and save the quadratures for each recorded dataset
+for Dir = SubDirectories.'
     FileName_LOOnly = "";
     FileName_LOAndSignal = "";
 
-    for FileName_Raw = FileNames_Raw
-        if contains(FileName_Raw,Token_LOOnly)
-            FileName_LOOnly = FileName_Raw;
+    % 2.1 skip if directory includes no valid files (checked by seachring for '.raw' files)
+    if isempty(dir(fullfile(Dir,'*.raw')))
+        continue
+    end
+
+    % 2.2 get the filepaths of a dataset
+    [~,FileNames,~] = fileparts(QST.Files.Paths.getFilePaths(Dir));
+    
+    % 2.3 get the filenames of LOOnly and LOwithSIG with the used tokens (THIS PART CAN BE IMPROVED)
+    for Name = FileNames.'
+        if contains(Name,Token_LOOnly)
+            FileName_LOOnly = Name;
         end
-        if contains(FileName_Raw,Token_LOAndSignal)
-            FileName_LOAndSignal = FileName_Raw;
+        if contains(Name,Token_LOAndSignal)
+            FileName_LOAndSignal = Name;
         end
     end
     assert(FileName_LOOnly ~= "" && FileName_LOAndSignal ~= "","Filenames are wrong: LOOnly and/or LOAndSignal Files could not be found")
-    %% calculate the Quadratures
-    [X1, X2, X3] = QST.QuadratureCalculation.prepareData(char(FileName_LOOnly),...
+    % 2.4 calculate the Quadratures
+    [X1, X2, X3, PiezoInfos] = QST.QuadratureCalculation.prepareData(Dir,...
+                                     char(FileName_LOOnly),...
                                      char(FileName_LOAndSignal),...
                                      Channels,...
                                      Offset,...
@@ -70,20 +76,19 @@ for Dir = SubDirectories
                                      RemoveDetectorResponse,...
                                      IntegrationDutyCycle,...
                                      nMean_Min,...
-                                     Delta);
+                                     Delta,...
+                                     UseLegacySyntax=UseLegacySyntax);
     
-    %% save the results
+    % 2.5 save the calculated quadratures
     % create Folder
-    SaveFolderPath = fullfile(FilePath,'..');
-    SaveFolderPath = fullfile(SaveFolderPath,'mat-data');
-    if ~exist(SaveFolderPath,"dir")
-        mkdir(SaveFolderPath)
+    SaveDirectory = fullfile(Dir,'..');
+    SaveDirectory = fullfile(SaveDirectory,'mat-data');
+    if ~exist(SaveDirectory,"dir")
+        mkdir(SaveDirectory)
     end
-    % get parts of the filename right
-    SIGFileNameOnly = split(FileName_LOAndSignal,'\');
-    SIGFileNameOnly = char(SIGFileNameOnly(end));
+
     % save the data
-    QST.QuadratureCalculation.saveQuadratures(SaveFolderPath,SIGFileNameOnly,X1,X2,X3);
+    QST.QuadratureCalculation.saveQuadratures(SaveDirectory, 'Matdata', X1, X2, X3, PiezoInfos);
     % create some extra Config to save the analysis parameter (to be implemented)
     %QST.QuadratureCalculation.saveAnalyseParameters([],QuadratureCalculation,Channels,)
 end

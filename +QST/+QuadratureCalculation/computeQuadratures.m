@@ -11,9 +11,9 @@ defaultLocationOffset = 0;
 addParameter(p,'LocationOffset',defaultLocationOffset,@isnumeric);
 defaultIntegrationWindow = 0;
 addParameter(p,'IntegrationWindow',defaultIntegrationWindow,@isnumeric);
-if config.SpectrumCard.Clock.SamplingRate0x28MHz0x29_DBL == 5000
+if config.SpectrumCard.Clock.SamplingRate_MHz__DBL == 5000
     defaultMinPeakDistance = 40; % intended for 5GS/s
-elseif config.SpectrumCard.Clock.SamplingRate0x28MHz0x29_DBL == 2500
+elseif config.SpectrumCard.Clock.SamplingRate_MHz__DBL == 2500
     defaultMinPeakDistance = 20; % intended for 2.5GS/s
 else
     defaultMinPeakDistance = 10; % intended for 1.25GS/s
@@ -30,7 +30,7 @@ c = struct2cell(p.Results);
 [dutycycle,integrationWindow,locationOffset,locs,minPeakDistance, ...
     reprate,showIntegration] = c{:};
 
-SAMPLERATE = config.SpectrumCard.Clock.SamplingRate0x28MHz0x29_DBL * 1e6;
+SAMPLERATE = config.SpectrumCard.Clock.SamplingRate_MHz__DBL * 1e6;
 ELEMENTARY_CHARGE = 1.6021766208e-19;
 
 switch config.SpectrumCard.Channel00.Range_I32
@@ -50,7 +50,7 @@ end
 for iCh = 1:nChannels
     % Identify integration centers and add offset if necessary
     if isempty(locs)
-        [locs,~] = pointwiseVariance(data8bit(:,:,iCh), ...
+        [locs,~] = QST.QuadratureCalculation.getPointwiseVariance(data8bit(:,:,iCh), ...
             'MinPeakDistance',minPeakDistance);
     end
     locs = locs + locationOffset;
