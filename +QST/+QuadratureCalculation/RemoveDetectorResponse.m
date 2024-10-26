@@ -25,7 +25,7 @@ end
 
 % create matrix for gram schmidt 
 M = zeros([Delta+nSeg,nMean]);
-%get first matrix of the indices
+% get first matrix of the indices
 for i = 1:nMean
     M(:,i) = (1:Delta+nSeg) + (i-1)*nSeg;
 end
