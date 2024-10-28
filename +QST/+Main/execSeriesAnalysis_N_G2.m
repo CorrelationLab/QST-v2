@@ -3,11 +3,15 @@ function []  = execSeriesAnalysis_N_G2(RootDirectory,Channels,Options)
         RootDirectory;
         Channels;
         Options.QuadratureDefiner = 'X';
+        Options.Averagemethod = 'moving';
+        Options.AverageSize = 10000;
+        Options.StepSize = 1000;
+        Options.Samplerate = 74.3864;
     end
 
 MatPaths = QST.File_Managment.getFilePaths(RootDirectory);
 [~,~,Ext] = fileparts(MatPaths); 
-MatPaths = MatPaths(isequal(Ext,'.mat'));
+MatPaths = MatPaths(strcmp(Ext,".mat"));
 
 for f = MatPaths
     SavePath = split(f,filesep);
@@ -21,7 +25,7 @@ for f = MatPaths
         Q = load(f, strcat(Options.QuadratureDefiner,string(i)));
         Q = Q.(strcat(Options.QuadratureDefiner,string(i)));
         %% 2. Calculate N and G2
-        [N, G2, Times,EdgeIndices] = QST.N_G2.calcTimeResolved_N_G2(Q, AverageMethod='moving',AverageSize=10000, StepSize=1000,Samplerate=74.3864);
+        [N, G2, Times,EdgeIndices] = QST.N_G2.calcTimeResolved_N_G2(Q, AverageMethod=Options.Averagemethod,AverageSize=Options.AverageSize, StepSize=Options.StepSize,Samplerate=Options.Samplerate);
 
         %% 3. Plot N and G2 in two seperate plots
         Fig(1) = figure;

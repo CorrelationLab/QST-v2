@@ -56,7 +56,7 @@ for Dir = SubDirectories.'
     % 2.2 get the filepaths of a dataset
     [~,FileNames,~] = fileparts(QST.File_Managment.getFilePaths(Dir));
     
-    % 2.3 get the filenames of LOOnly and LOwithSIG with the used tokens (THIS PART CAN BE IMPROVED)
+    % 2.3 get the filenames of LOOnly and LOwithSIG with the used tokens (THIS PART CAN BE IMPROVED, RIGHT NOW IT BREAKS THE LEGACYSYNTAX)
     for Name = FileNames.'
         if contains(Name,Token_LOOnly)
             FileName_LOOnly = Name;
