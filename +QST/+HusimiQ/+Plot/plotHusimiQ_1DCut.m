@@ -18,7 +18,7 @@ function [] = plotHusimiQ_1DCut(BinsQ,HusimiCut,HusimiCutTheory,PoissonErrorsCut
     Fig(1) = figure;
 
     %% 1. create 1D Graph for the Data
-    Line = shadedErrorBar(BinsQ,HusimiCut,PoissonErrorsCut,'lineProps',{'k-','Linewidth',3});
+    Line = QST.Helper.shadedErrorBar(BinsQ,HusimiCut,PoissonErrorsCut,'lineProps',{'k-','Linewidth',3});
     Line.DisplayName= 'Data';
     hold on;
 
@@ -31,7 +31,7 @@ function [] = plotHusimiQ_1DCut(BinsQ,HusimiCut,HusimiCutTheory,PoissonErrorsCut
     ylabel('Q(q,p = 0)');
     legend('location','southwest');
 
-    graphicsSettings;% a function from carolin to set some plotmaker properties
+    QST.Helper.graphicsSettings();% a function from carolin to set some plotmaker properties
     Axes = gca;
     set(Axes,fontsize=50,fontname='Arial',linewidth=3);
     Axes.XLim = Limits;

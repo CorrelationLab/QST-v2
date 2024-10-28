@@ -40,8 +40,8 @@ if isequal(Options.FilePath,'')
 
     %% 1.1.2 Subset information is given by Edgeindices
     elseif ~isempty(Options.X1_EdgeIndices) && ~isempty(Options.X2_EdgeIndices)
-        [~,Options.X1_Indices] = QST.Data_Managment.Single.calcQuadraturesFromEdgeIndices([],Options.X1_EdgeIndices);
-        [~,Options.X2_Indices] = QST.Data_Managment.Single.calcQuadraturesFromEdgeIndices([],Options.X2_EdgeIndices);
+        [~,Options.X1_Indices] = QST.Helper.calcQuadraturesFromEdgeIndices([],Options.X1_EdgeIndices);
+        [~,Options.X2_Indices] = QST.Helper.calcQuadraturesFromEdgeIndices([],Options.X2_EdgeIndices);
         Ind = intersect(Options.X1_Indices,Options.X2_Indices);
     end
 
@@ -50,21 +50,21 @@ if isequal(Options.FilePath,'')
 else
     %% 1.2 Data is given by filepath
     % Load quadrature data
-    Options.X1 = QST.Data_Managment.Single.getVariableFromFilePath(Options.FilePath,Options.X1String);
-    Options.X2 = QST.Data_Managment.Single.getVariableFromFilePath(Options.FilePath,Options.X2String);
+    Options.X1 = QST.Variable_Managment.getVariableFromFilePath(Options.FilePath,Options.X1String);
+    Options.X2 = QST.Variable_Managment.getVariableFromFilePath(Options.FilePath,Options.X2String);
 
     %% 1.2.1 Subset information is given by general Quadrature indices
-    if ~isempty(Options.X1_IndicesString) && ~isempty(Options.X2_IndicesString)
-        Options.X1_Indices = QST.Data_Managment.Single.getVariableFromFilePath(Options.FilePath,Options.X1_IndicesString);
-        Options.X2_Indices = QST.Data_Managment.Single.getVariableFromFilePath(Options.FilePath,Options.X2_IndicesString);    
+    if ~isequal(Options.X1_IndicesString,'') && ~isequal(Options.X2_IndicesString,'')
+        Options.X1_Indices = QST.Variable_Managment.getVariableFromFilePath(Options.FilePath,Options.X1_IndicesString);
+        Options.X2_Indices = QST.Variable_Managment.getVariableFromFilePath(Options.FilePath,Options.X2_IndicesString);    
         Ind = intersect(Options.X1_Indices,Options.X2_Indices);
 
     %% 1.2.2 Subset information is given by Edgeindices   
     elseif ~isequal(Options.X1_EdgeIndicesString,'') && ~isequal(Options.X2_EdgeIndicesString,'')
-        Options.X1_EdgeIndices = QST.Data_Managment.Single.getVariableFromFilePath(Options.FilePath,Options.X1_EdgeIndicesString);
-        Options.X2_EdgeIndices = QST.Data_Managment.Single.getVariableFromFilePath(Options.FilePath,Options.X2_EdgeIndicesString);
-        [~,Options.X1_Indices] = QST.Data_Managment.Single.calcQuadraturesFromEdgeIndices([],Options.X1_EdgeIndices);
-        [~,Options.X2_Indices] = QST.Data_Managment.Single.calcQuadraturesFromEdgeIndices([],Options.X2_EdgeIndices);        
+        Options.X1_EdgeIndices = QST.Variable_Managment.getVariableFromFilePath(Options.FilePath,Options.X1_EdgeIndicesString);
+        Options.X2_EdgeIndices = QST.Variable_Managment.getVariableFromFilePath(Options.FilePath,Options.X2_EdgeIndicesString);
+        [~,Options.X1_Indices] = QST.Helper.calcQuadraturesFromEdgeIndices([],Options.X1_EdgeIndices);
+        [~,Options.X2_Indices] = QST.Helper.calcQuadraturesFromEdgeIndices([],Options.X2_EdgeIndices);        
         Ind = intersect(Options.X1_Indices,Options.X2_Indices);
     end
 end

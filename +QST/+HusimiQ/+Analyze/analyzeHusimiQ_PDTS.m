@@ -1,4 +1,4 @@
-function [nCoherent,  nCoherentErr, nTherm, nThermErr,nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut, Radius,radMean] = analyzeHusimiQDistribution(Bins1, HusimiQ, Resolution, alphaSpaceRad, Options)
+function [nCoherent,  nCoherentErr, nTherm, nThermErr,nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut, Radius,radMean] = analyzeHusimiQ_PDTS(Bins1, HusimiQ, Resolution, alphaSpaceRad, Options)
 
 arguments
     Bins1;
@@ -47,19 +47,19 @@ nCoherent = Params.b1;
 % derive nRatio, g2 and the quantum coherence from it
 nRatio = nCoherent/nTherm;
 G2 = 2 - (nCoherent/(nCoherent+nTherm))^2;
-Coherence = coherencePDTS(nTherm,nCoherent);
+Coherence = QST.Simulation.QuantumCoherence.coherencePDTS(nCoherent,nTherm);
 
 
 % calculate the uncertainties in case not monte carlo is used
 if Options.MonteCarloError==false
-    StandardErrors = getStandardErrorsFromFit(Params,gof,'method1');
+    StandardErrors = QST.Helper.getStandardErrorsFromFit(Params,gof,'method1');
     nThermErr = StandardErrors(1);
     nCoherentErr = StandardErrors(2);
-    [~, CoherenceErr,~, ~] = error_propagation( @(nTherm,nCoherent) coherencePDTS(nTherm,nCoherent),...
-                                                                    nTherm, ...
-                                                                    nCoherent, ...
-                                                                    nThermErr, ...
-                                                                    nCoherentErr);
+    [~, CoherenceErr,~, ~] = QST.Helper.error_propagation( @(nCoherent,nTherm) QST.Simulation.QuantumCoherence.coherencePDTS(nCoherent,nTherm),...
+                                                          nCoherent, ...
+                                                          nTherm, ...
+                                                          nCoherentErr, ...
+                                                          nThermErr);
     CoherenceErr(isnan(CoherenceErr)) = 0;
 
 % set the values to zero since they are not needed

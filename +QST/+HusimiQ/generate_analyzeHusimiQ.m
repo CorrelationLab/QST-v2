@@ -1,4 +1,4 @@
-function [Bins1,Bins2,HusimiQ, Radius,nTherm,nThermErr,nCoherent,nCoherentErr,nMean,nMeanErr,nRatio,nRatioErr,G2,G2Err,Coherence,CoherenceErr,poissonErrors,poissonErrorsCut,HusimiCut, HusimiCut_Theory,radMean] = calcHusimiAfterCarolin_2(X1,X2,Resolution,Limits,Options)
+function [Bins1,Bins2,HusimiQ, Radius,nTherm,nThermErr,nCoherent,nCoherentErr,nMean,nMeanErr,nRatio,nRatioErr,G2,G2Err,Coherence,CoherenceErr,poissonErrors,poissonErrorsCut,HusimiCut, HusimiCut_Theory,radMean] = generate_analyzeHusimiQ(X1,X2,Resolution,Limits,Options)
 
     arguments
         X1;
@@ -14,7 +14,7 @@ function [Bins1,Bins2,HusimiQ, Radius,nTherm,nThermErr,nCoherent,nCoherentErr,nM
     end
 
 %% 1. create the Husimi Q Distribution and prepare the corresponding alphaspaceRad
-[Edges1, Edges2, HusimiQ, Bins1, Bins2, poissonErrors, poissonErrorsCut] = QST.Plotting.createHusimiQDistributionFromQuadratures(X1, X2, Limits, Resolution, Edges1=Options.Edges1, Edges2=Options.Edges2);
+[Edges1, Edges2, HusimiQ, Bins1, Bins2, poissonErrors, poissonErrorsCut] = QST.HusimiQ.Generate.generateHusimiQAndPoisson(X1, X2, Limits, Resolution, Edges1=Options.Edges1, Edges2=Options.Edges2);
 
 % preparation to make Monte Carlo faster
 [X1Axis,X2Axis] = meshgrid(Bins1,Bins2);
@@ -26,7 +26,7 @@ end
     
 %% 2. analyze the Husimi Q distribution and its cut along the P=0 axis. Its is also possible to use Monte Carlo error estimation
 %2.1 analyze the husimi Q distribution one first time
-[nCoherent, nCoherentErr, nTherm, nThermErr, nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut, Radius, radMean] = QST.Plotting.analyzeHusimiQDistribution(Bins1, HusimiQ, Resolution, alphaSpaceRad, MonteCarloError=false);
+[nCoherent, nCoherentErr, nTherm, nThermErr, nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut, Radius, radMean] = QST.HusimiQ.Analyze.analyzeHusimiQ_PDTS(Bins1, HusimiQ, Resolution, alphaSpaceRad, MonteCarloError=false);
 %2.2 set uncertainties which are not measureable this way to 0. To get them one has to use Monte Carlo
 nMeanErr = 0;
 nRatioErr = 0;
@@ -43,7 +43,7 @@ if Options.MonteCarloError
         % 2.3.2 randomize the husimi Q distribution based on the poissonerrors
         HusimiQRandom = normrnd(HusimiQ,poissonErrors);
         % 2.3.3 analyze the randomized husimi Q distribution
-        [nCoherent_i, ~, nTherm_i, ~, nMean_i, nRatio_i, G2_i, Coherence_i, ~,~,~,~] = QST.Plotting.analyzeHusimiQDistribution(Bins1, HusimiQRandom, Resolution, alphaSpaceRad, MonteCarloError=true);
+        [nCoherent_i, ~, nTherm_i, ~, nMean_i, nRatio_i, G2_i, Coherence_i, ~,~,~,~] = QST.HusimiQ.Analyze.analyzeHusimiQ_PDTS(Bins1, HusimiQRandom, Resolution, alphaSpaceRad, MonteCarloError=true);
         % 2.3.4 save the results in the preallocated array
         nCoherentRand(i) = nCoherent_i;
         nThermRand(i) = nTherm_i;

@@ -47,7 +47,8 @@ function [] = plotHusimiQ_2D( BinsQ, BinsP, HusimiQ, Resolution, FitMethod, Save
     xlabel('q');
     ylabel('p');
     pbaspect([1 1 1]);
-    graphicsSettings;grid;
+    QST.Helper.graphicsSettings();
+    grid off;
     ax = gca;
     set(ax,'FontSize',36,'FontName','Arial', 'TickDir','out');
     % set colorbar
