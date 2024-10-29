@@ -5,8 +5,6 @@ function [X1,X2] = prepareDataSubSetForHusimiQ(Options)
 % subset is determined by either Indices or Edgeindices.
 
 arguments
-    % General options
-    Options.ScaleChannels = true; % this should be compared with carolins function
     % Input options for quadratures in the workspace 
     Options.X1 = [];
     Options.X2 = [];
@@ -77,25 +75,6 @@ if Ind(1) ~= -1
         X1 = X1(Ind);
         X2 = X2(Ind);
 end
-
-
-
-%% 3. rescale Data to the Point before the splitting Beamsplitter
-X1 = X1(:)*sqrt(2);
-X2 = X2(:)*sqrt(2);
-
-
-
-%% 4. Scale the Data if wanted
-if Options.ScaleChannels == true
-    nMean_X1 = mean(X1(:).^2) - 0.5;
-    nMean_X2 = mean(X2(:).^2) - 0.5;
-    X1 = X1*sqrt(mean([nMean_X1, nMean_X2])/nMean_X1);
-    X2 = X2*sqrt(mean([nMean_X1, nMean_X2])/nMean_X2);
-end
-
-
-
 
 
 end

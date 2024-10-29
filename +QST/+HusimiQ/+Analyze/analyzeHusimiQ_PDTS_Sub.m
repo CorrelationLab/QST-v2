@@ -1,13 +1,12 @@
-function [nCoherent,  nCoherentErr, nTherm, nThermErr,nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut, Radius,radMean] = analyzeHusimiQ_PDTS(Bins1, HusimiQ, Resolution, alphaSpaceRad, Options)
+function [nCoherent, nCoherentErr, nTherm, nThermErr,nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut] = analyzeHusimiQ_PDTS_Sub(Bins_Q, HusimiQ, Resolution, AlphaSpaceRadial, Options)
 
 arguments
-    Bins1;
+    Bins_Q;
     HusimiQ;
     Resolution;
-    alphaSpaceRad;
+    AlphaSpaceRadial;
     Options.MonteCarloError=false;
     Options.FitMethod = 'NLSQ-LAR';
-    Options.FitFunction = [];
 end
 
 
@@ -15,31 +14,27 @@ end
 %% 4. get base Values from the 2D distribution data
 
 
-nMean = sum((alphaSpaceRad.^2).*HusimiQ,"all")-1;
-radMean = sqrt(2)*sum(alphaSpaceRad.*HusimiQ,"all");
+nMean = sum((AlphaSpaceRadial.^2).*HusimiQ,"all")-1;
 
 
 %% 5. The Horizontal Cut
-HusimiCut = HusimiQ((length(Bins1)+1)/2,:);
+HusimiCut = HusimiQ((length(Bins_Q)+1)/2,:);
 % Calc Start Parameter for the Fit
-HusimiCut_Soft = transpose(csaps(Bins1,HusimiCut,0.6,Bins1));
+HusimiCut_Soft = transpose(csaps(Bins_Q,HusimiCut,0.6,Bins_Q));
 [~,I] = max(HusimiCut_Soft);
-Radius = abs(Bins1(I));
+Radius = abs(Bins_Q(I));
 nCoherent = 0.5*Radius^2; % the factor of 0.5 comes bcause its calculated from the q-p space
 nTherm = nMean-nCoherent;
 
 % Set Up Data for Fit in alpha space (data only bases on radial value)
-alphaFit = alphaSpaceRad(:);
+alphaFit = AlphaSpaceRadial(:);
 HusimiFit = HusimiQ(:);
 
 % the actual fit
-if strcmp(Options.FitMethod,'NLSQ-LAR')
-    if isempty(Options.FitFunction)
-        Options.FitFunction = fittype('0.5*Resolution^2*(pi*(a1+1))^-1 *exp(-(x.^2 + b1)/(a1+1)) .* besseli(0,2*x*sqrt(b1)/(a1+1))','problem','Resolution'); 
-    end
-end
+FitFunction = fittype('0.5*Resolution^2*(pi*(a1+1))^-1 *exp(-(x.^2 + b1)/(a1+1)) .* besseli(0,2*x*sqrt(b1)/(a1+1))','problem','Resolution'); 
+
 %The Fit
-[Params,gof,~] = fit(alphaFit,HusimiFit,Options.FitFunction,'problem',Resolution,'StartPoint', [nTherm,nCoherent],'Lower',[0,0],'Robust','LAR' );
+[Params,gof,~] = fit(alphaFit,HusimiFit,FitFunction,'problem',Resolution,'StartPoint', [nTherm,nCoherent],'Lower',[0,0],'Robust','LAR' );
 
 % get fitparameter back
 nTherm = Params.a1;

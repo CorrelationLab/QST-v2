@@ -19,7 +19,9 @@ function [] = createTimeResolvedHusimiMovie_MovingAverage(X1,X2,Times_1,Times_2,
     end
 
    %% 0. prepare Data for HusimiQ
-   [X1,X2] = QST.HusimiQ.Prepare.prepareDataSubSetForHusimiQ(X1=X1,X2=X2,ScaleChannels=Options.ScaleChannels);
+   [X1,X2] = QST.HusimiQ.Prepare.prepareDataSubSetForHusimiQ(X1=X1,X2=X2,ScaleChannels=Options.ScaleChannels); %I guess it would be the best to remove 
+                                                                                                               %the quadrature rescaling from this function and place it into a seperate one
+                                                                                                               % then first generate the edgeindices and second apply them on the Quadratures
 
    %% 1. Select Data by Time
    [Time_1_Select,~,~,EdgeIndices_1_Select,X1_Indices_Select,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(TimeStart,TimeEnd,Times_1,[],[],EdgeIndices_1,[]);
