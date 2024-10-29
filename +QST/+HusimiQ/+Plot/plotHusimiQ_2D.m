@@ -75,7 +75,7 @@ function [] = plotHusimiQ_2D( Bins_Q, Bins_P, HusimiQ, Options)
 
     %% 6. save Figure
     if Options.SaveFigure
-        assert(~isequal(FitMethod,''),'No Fitmethod given');
+        assert(~isequal(Options.FitMethod,''),'No Fitmethod given');
         Resolution = abs(Bins_Q(2)-Bins_Q(1));
         SaveNameFull = strcat(SaveName, '-Resolution', num2str(Resolution), '-FitMethod-', Options.FitMethod, '-IncludesResults-', tostring(Options.ShowLegend),'.fig');
         SavePath = fullfile(Options.Dir, SaveNameFull);
