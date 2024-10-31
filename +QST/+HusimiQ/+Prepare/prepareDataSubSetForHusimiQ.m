@@ -1,4 +1,4 @@
-function [X1,X2] = prepareDataSubSetForHusimiQ(Options)
+function [X1,X2,Ind] = prepareDataSubSetForHusimiQ(Options)
 
 % Function to collect and prepare a subset of quadratures for the calculation of the husimi Q distribution
 % The connection is X1->q, X2->p. The Quadrature given should not be filtered beforehand. The selection of a specific
