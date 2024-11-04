@@ -54,7 +54,6 @@ X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Confi
 [X1, X2, X3] = deal(0);
 %% from now on each Channel individually
     for iCh = Channels
-        QST.Helper.dispstat(['Remove Detectorresponse from Channel ',num2str(iCh),'...'],'timestamp','keepthis',0);
         Data = X(:,:,iCh);
         % 4.2 rescale the Quadratures
         Data = Data / Alpha(iCh);
@@ -63,6 +62,7 @@ X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Confi
         % 4.4 remove the Detectorresponse
         Data = Data(:);
         if RemoveDetectorResponse(iCh)
+            QST.Helper.dispstat(['Remove Detectorresponse from Channel ',num2str(iCh),'...'],'timestamp','keepthis',0);
             Data = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
         end
         % 4.5 cut the data in piezos according to the observed piezo movement if piezo was active on this channel

@@ -2,7 +2,7 @@ function []  = execSeriesAnalysis_N_G2(RootDirectory,Channels,Options)
     arguments
         RootDirectory;
         Channels;
-        Options.QuadratureDefiner = 'X';
+        Options.QuadratureDefiner = "X";
         Options.Averagemethod = 'moving';
         Options.AverageSize = 10000;
         Options.StepSize = 1000;
@@ -13,7 +13,8 @@ MatPaths = QST.File_Managment.getFilePaths(RootDirectory);
 [~,~,Ext] = fileparts(MatPaths); 
 MatPaths = MatPaths(strcmp(Ext,".mat"));
 
-for f = MatPaths
+for j = 1:length(MatPaths)
+        f = MatPaths(j);
     SavePath = split(f,filesep);
     SavePath = SavePath(1:end-2);
     SavePath = join(SavePath,filesep);

@@ -40,9 +40,12 @@ function [] = plotHusimiQ_1DCut(Bins_Q,HusimiCut,HusimiCutTheory,PoissonErrorCut
 
     %% 4. Save the plot
     if Options.SaveFigure
-        assert(~isequal(FitMethod,''),'No Fitmethod given');
-        SaveNameFull = strcat(SaveName, '-Resolution', num2str(Resolution), '-FitMethod-', Options.FitMethod, '-IncludesResults-', tostring(Options.ShowLegend),'.fig');
-        SavePath = fullfile(Options.Dir, SaveNameFull);
+        assert(~isequal(Options.FitMethod,''),'No Fitmethod given');
+        SaveNameFull = strcat(Options.SaveName, '-Resolution', num2str(Resolution), '-FitMethod-', Options.FitMethod, '-IncludesResults-', string(Options.ShowLegend),'.fig');
+        if ~exist(Options.SaveDir,'dir')
+            mkdir(Options.SaveDir);
+        end
+        SavePath = fullfile(Options.SaveDir, SaveNameFull);
         savefig(Fig,SavePath);
     end
 end

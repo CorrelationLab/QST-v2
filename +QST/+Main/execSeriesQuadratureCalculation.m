@@ -29,7 +29,7 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
         Options.nMean_Min = 1000000;
         Options.Delta = 50;
         %Token
-        Options.Token_LOOnly = "LOonly";
+        Options.Token_LOOnly = "LOOnly";
         Options.Token_LOAndSignal = "LOwithSIG";
         Options.UseLegacySyntax = false;
     end
@@ -44,7 +44,8 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
 SubDirectories = QST.File_Managment.getDirectoryPaths(Directory);
 
 %% 2. calculate and save the quadratures for each recorded dataset
-for Dir = SubDirectories.'
+parfor i = 1:length(SubDirectories)
+    Dir = SubDirectories(i)
     FileName_LOOnly = "";
     FileName_LOAndSignal = "";
 
