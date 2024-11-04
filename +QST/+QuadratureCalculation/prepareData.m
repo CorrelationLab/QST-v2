@@ -5,7 +5,7 @@ arguments
     FilenameLO;
     FilenameSIG;
     Channels;
-    OffsetType = ['Global','Global','Global'];
+    OffsetType = ["Global","Global","Global"]; % this has to be strings!!!
     ModulatedPhase = [true,true,true];
     RemoveDetectorResponse = [false,false,false];
     IntegrationDutyCycle = 1/3;
@@ -37,7 +37,7 @@ XLO = QST.QuadratureCalculation.computeQuadratures(Data8bitLO(:,:,Channels),Conf
 for i = Channels
     Data = XLO(:,:,i);
     % 3.2 remove the Offsets
-    Data = QST.QuadratureCalculation.removeOffset(Data,'Local'); % remove Offsets (for LOOnly this can be a local offset)
+    Data = QST.QuadratureCalculation.removeOffset(Data,"Local"); % remove Offsets (for LOOnly this can be a local offset)
     % 3.3 remove the detectorresponse
     DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta); % since vacuum has not phaserelation with LO the removal of the detectorresponse can always be applied
     % 3.4 calculate the regularisation based on the LO's distribution width
@@ -55,6 +55,7 @@ X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Confi
 %% from now on each Channel individually
     for iCh = Channels
         Data = X(:,:,iCh);
+        DataShape = size(Data);
         % 4.2 rescale the Quadratures
         Data = Data / Alpha(iCh);
         % 4.3 remove the offset
@@ -67,7 +68,8 @@ X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Confi
         end
         % 4.5 cut the data in piezos according to the observed piezo movement if piezo was active on this channel
         if ModulatedPhase(iCh)
-            [Data, PiezoShape, PiezoStartDirection,PiezoEdgeIndices] = QST.QuadratureCalculation.getPiezoSegments(Data,TimestampSIG);
+            Data = reshape(Data,DataShape);% reshape Data back into the segments
+            [Data, PiezoShape, PiezoStartDirection,PiezoEdgeIndices] = QST.QuadratureCalculation.getPiezoSegments(Data,TimestampSIG,SegmentSelectionMode='MinLength');
         else
             PiezoShape = [1,length(Data)];
             PiezoStartDirection = 0;

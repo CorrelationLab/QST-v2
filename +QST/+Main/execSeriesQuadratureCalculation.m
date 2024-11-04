@@ -22,9 +22,11 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
         Directory;
         %Parameter:
         Channels;
-        Offset = ['Local','Local','Local'];
+        
+        Offset = ["Local","Local","Local"]; % this has to be strings!!!
         ModulatedPhase = [false,false,false];
         RemoveDetectorResponse = [true,true,true];
+        Options.Preset = '';
         Options.IntegrationDutyCycle = 1/3;
         Options.nMean_Min = 1000000;
         Options.Delta = 50;
@@ -40,12 +42,26 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
     Token_LOAndSignal = Options.Token_LOAndSignal;
     UseLegacySyntax = Options.UseLegacySyntax;
 
+
+%% 0. set Offset, ModulatedPhase and RemoveDetectorResponse according to a preset to save time
+switch Options.Preset
+    case 'FixedPhase'
+        Offset = ["Global","Global","Global"];
+        ModulatedPhase = [true,true,true];
+        RemoveDetectorResponse = [false,false,false];
+    case 'RandomPhase'
+        Offset = ["Local","Local","Local"];
+        ModulatedPhase = [false,false,false];
+        RemoveDetectorResponse = [true,true,true];
+end
+
+
 %% 1. get all Subdirectories
 SubDirectories = QST.File_Managment.getDirectoryPaths(Directory);
 
 %% 2. calculate and save the quadratures for each recorded dataset
-parfor i = 1:length(SubDirectories)
-    Dir = SubDirectories(i)
+for i = 1:length(SubDirectories)
+    Dir = SubDirectories(i);
     FileName_LOOnly = "";
     FileName_LOAndSignal = "";
 
