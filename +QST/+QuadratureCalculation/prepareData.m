@@ -69,7 +69,7 @@ X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Confi
         % 4.5 cut the data in piezos according to the observed piezo movement if piezo was active on this channel
         if ModulatedPhase(iCh)
             Data = reshape(Data,DataShape);% reshape Data back into the segments
-            [Data, PiezoShape, PiezoStartDirection,PiezoEdgeIndices] = QST.QuadratureCalculation.getPiezoSegments(Data,TimestampSIG,SegmentSelectionMode='MinLength');
+            [Data, PiezoShape, PiezoStartDirection,PiezoEdgeIndices] = QST.QuadratureCalculation.getPiezoSegments(Data,TimestampSIG,SegmentSelectionMode='MaxLength');
         else
             PiezoShape = [1,length(Data)];
             PiezoStartDirection = 0;

@@ -29,7 +29,6 @@ switch Options.SegmentSelectionMode
     otherwise
         error("Invalid Input for 'SegmentSelectionMode': Allowed values are 'MaxLength' and 'MinLength'. ");
 end
-%SegmentLength = size(Data,1)*SegmentLength; % get the real length of the data: #ADCsegments per piezosegment * #measurements per ADC Segment
 
 
 %% 2. get the direction the first segment has moved
@@ -46,20 +45,21 @@ end
 PiezoEdgeIndices = zeros([2,NSegments]);
 switch Options.SegmentSelectionMode
     case 'MaxLength'
-        Data_PiezoShaped = NaN(SegmentLength*size(Data,1),NSegments);
+        Data_PiezoShaped = NaN(size(Data,1), SegmentLength, NSegments);
         for iGap = 1:NSegments
             Start = GapPositions(iGap)+1;
             End = GapPositions(iGap+1);
             Seg = Data(:,Start:End);
-            Data_PiezoShaped(:,iGap) = [Seg , NaN(SegmentLength-length(Seg))];
+            SegTotal = [Seg , NaN([size(Data,1),SegmentLength-size(Seg,2)])];
+            Data_PiezoShaped(:,:,iGap) = SegTotal;
             PiezoEdgeIndices(:,iGap) = [Start,End];
         end
     case 'MinLength'
-        Data_PiezoShaped = zeros(SegmentLength*size(Data,1),NSegments);
+        Data_PiezoShaped = zeros(size(Data,1), SegmentLength, NSegments);
         for iGap = 1:NSegments
             Start = GapPositions(iGap);
             End = GapPositions(iGap)+SegmentLength-1;
-            Data_PiezoShaped(:,iGap) = reshape(Data(:,Start:End),1,[]);
+            Data_PiezoShaped(:,:,iGap) = Data(:,Start:End);
             PiezoEdgeIndices(:,iGap) = [Start, End];
         end
 end

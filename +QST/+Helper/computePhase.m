@@ -11,7 +11,7 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
 % OPTIONS:
 % PeriodsPerSegment :                 Guessed count of occuring phasepasses in
 %                                     the Crosscorelation of X_PsFast and
-%                                     X_Target. Default is 4.
+%                                     X_Target. Default is 2.
 % PeakThreshold :                     Relative Threshold (compared to Segments Maximum) for Detection of Peaks.
 %                                     Default is 0.5
 % IgnoredSegments:                    Array of Indices of in the calculation
@@ -42,7 +42,7 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
     end
 
     % Calculate the smoothed Crosscorrelation between Xa and Xb
-    Y_Smoothed = QST.Helper_Data.smoothCrossCorr(Xa,Xb,Type=Options.Smoothing_Type,Accuracy_Spline=Options.Smoothing_Accuracy_Spline,Accuracy_MovingAverage=Options.Smoothing_Accuracy_MovingAverage);
+    Y_Smoothed = QST.Helper.calcSmoothedCrossCorr(Xa,Xb,Type=Options.Smoothing_Type,Accuracy_Spline=Options.Smoothing_Accuracy_Spline,Accuracy_MovingAverage=Options.Smoothing_Accuracy_MovingAverage);
     % Set Dimensions of used Data 
     [nPointsPerSegment,nSegments] = size(Y_Smoothed);
     nPointsPerPeriod = nPointsPerSegment / Options.PeriodsPerSegment;
