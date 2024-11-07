@@ -1,10 +1,11 @@
-function [nCoherent, nCoherentErr, nTherm, nThermErr,nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut] = analyzeHusimiQ_PDTS_Sub(Bins_Q, HusimiQ, Resolution, AlphaSpaceRadial, Options)
+function [nCoherent, nCoherentErr, nTherm, nThermErr,nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut] = analyzeHusimiQ_PDTS_Sub(Bins_Q, HusimiQ, Resolution, AlphaSpaceRadial,AlphaSpacePhase, Options)
 
 arguments
     Bins_Q;
     HusimiQ;
     Resolution;
     AlphaSpaceRadial;
+    AlphaSpacePhase;
     Options.MonteCarloError=false;
     Options.FitMethod = 'NLSQ-LAR';
 end
@@ -28,7 +29,21 @@ nTherm = nMean-nCoherent;
 
 % Set Up Data for Fit in alpha space (data only bases on radial value)
 alphaFit = AlphaSpaceRadial(:);
+alphaFitPhase = AlphaSpacePhase(:);
 HusimiFit = HusimiQ(:);
+
+% Test (06.11.2024): filter for parts of the Husimi Q function to overcome the problem of the missing detector removal
+%PhaseLimits = [-pi/8,pi/8];
+PhaseLimits = [-pi/8+pi/4,pi/8+pi/4];
+%PhaseLimits = [-pi/8+pi/2,pi/8+pi/2];
+Indices = find(alphaFitPhase > PhaseLimits(1) &  alphaFitPhase < PhaseLimits(2));
+alphaFit = alphaFit(Indices);
+alphaFitPhase = alphaFitPhase(Indices);
+HusimiFit = HusimiFit(Indices);
+
+hold on
+scatter(alphaFit,HusimiFit)
+
 
 % the actual fit
 FitFunction = fittype('0.5*Resolution^2*(pi*(a1+1))^-1 *exp(-(x.^2 + b1)/(a1+1)) .* besseli(0,2*x*sqrt(b1)/(a1+1))','problem','Resolution'); 

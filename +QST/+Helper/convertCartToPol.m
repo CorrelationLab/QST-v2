@@ -1,4 +1,4 @@
-function [Amplitude, Phase] = calc_Amplitude_Phase(X1, X2, Options)
+function [Amplitude, Phase] = convertCartToPol(X1, X2, Options)
 % CALC_AMPLITUDE_PHASE calculates the individual amplitude and phase of a coordinate in phase space
 
 % INPUTS:
@@ -16,7 +16,7 @@ function [Amplitude, Phase] = calc_Amplitude_Phase(X1, X2, Options)
     arguments
         X1
         X2
-        Options.ZeroAxis {mustbenumerical} = 0;
+        Options.ZeroAxis {mustBeNumeric} = 0;
     end
     [Phase, Amplitude] = cart2pol(X1,X2);
     Phase = Phase - Options.ZeroAxis;

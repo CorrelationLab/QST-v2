@@ -20,12 +20,15 @@ PoissonErrorCut = PoissonError((length(Bins_Q)+1)/2,:);
 
 %% 2. calc Alphaspaces radial component
 [X1Axis,X2Axis] = meshgrid(Bins_Q,Bins_Q);
-AlphaSpaceRadial = 1/sqrt(2)*sqrt(X1Axis.^2+X2Axis.^2);
+[Radial,Phase] = QST.Helper.convertCartToPol(X1Axis,X2Axis);
+
+AlphaSpaceRadial = 1/sqrt(2)*Radial;
+AlphaSpacePhase = Phase;
 
     
 %% 3. analyze the Husimi Q distribution and its cut along the P=0 axis. Its is also possible to use Monte Carlo error estimation
 %2.1 analyze the Husimi Q distribution one first time
-[nCoherent, nCoherentErr, nTherm, nThermErr, nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut] = QST.HusimiQ.Analyze.analyzeHusimiQ_PDTS_Sub(Bins_Q, HusimiQ, Resolution, AlphaSpaceRadial, MonteCarloError=false,FitMethod=Options.FitMethod);
+[nCoherent, nCoherentErr, nTherm, nThermErr, nMean, nRatio, G2, Coherence, CoherenceErr, HusimiCut] = QST.HusimiQ.Analyze.analyzeHusimiQ_PDTS_Sub(Bins_Q, HusimiQ, Resolution, AlphaSpaceRadial, AlphaSpacePhase, MonteCarloError=false,FitMethod=Options.FitMethod);
 %2.2 set uncertainties which are not measureable this way to 0. To get them one has to use Monte Carlo
 nMeanErr = 0;
 nRatioErr = 0;
