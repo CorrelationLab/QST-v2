@@ -18,7 +18,7 @@ defaultHistory = false;
 addParameter(p,'History',defaultHistory,@islogical);
 defaultIterations = 50;
 addParameter(p,'Iterations',defaultIterations,@isnumeric);
-defaultMaxFockState = 50;
+defaultMaxFockState = 100;
 addParameter(p,'MaxFockState',defaultMaxFockState,@isnumeric);
 defaultRho = [];
 addParameter(p,'Rho',defaultRho,@ismatrix);
@@ -57,17 +57,18 @@ PI1D = QST.DensityMatrix.computeProjector1D( X, theta, maxFockState);
 nX = length(X);
 %prob = zeros(nX, 1);
 for iRho = 1:N_ITERATIONS
-    profile('-memory','on');
     % Iteration operator R = sum_i(Projector(theta_i,x_i)/prob_thetai(x_i))
     % Iteration: rho_k+1 = norm(R rho_k R)
-    QST.Helper.dispstat(['Iteration: ' num2str(iRho) ' of ' ...
-        num2str(N_ITERATIONS) '.'], 'timestamp');
+    %QST.Helper.dispstat(['Iteration: ' num2str(iRho) ' of ' ...
+    %    num2str(N_ITERATIONS) '.'], 'timestamp');
     rho = nextRho;
     
     %rho = G^-0.5*nextRho* G^-0.5;
     %R = QST.DensityMatrix.computeR(PI1D,rho,nX,maxFockState);
-    R = QST.DensityMatrix.computeR_Matrix(PI1D,rho,nX);
-    
+    %tic
+    %R = QST.DensityMatrix.computeR_Matrix(PI1D,rho,nX);
+    %toc
+    R = QST.DensityMatrix.computeR_MatrixGPU(PI1D,rho,nX);
    % RG = G^-0.5 * R * G^-0.5;
    
     %nextRho = RG * nextRho * RG; 
@@ -94,7 +95,7 @@ for iRho = 1:N_ITERATIONS
         QST.DensityMatrix.plotRho(nextRho);
         pause(1);
     end
-    profile viewer
+    %profile viewer
 end
 
 end
