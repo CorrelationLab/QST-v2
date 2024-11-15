@@ -68,4 +68,5 @@ end
 DataPiezoShape = size(Data_PiezoShaped);
 Data = Data_PiezoShaped(:);
 
+% minLength does not work
 end

@@ -42,7 +42,9 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
     end
 
     % Calculate the smoothed Crosscorrelation between Xa and Xb
+    tic
     Y_Smoothed = QST.Helper.calcSmoothedCrossCorr(Xa,Xb,Type=Options.Smoothing_Type,Accuracy_Spline=Options.Smoothing_Accuracy_Spline,Accuracy_MovingAverage=Options.Smoothing_Accuracy_MovingAverage);
+    toc
     % Set Dimensions of used Data 
     [nPointsPerSegment,nSegments] = size(Y_Smoothed);
     nPointsPerPeriod = nPointsPerSegment / Options.PeriodsPerSegment;
@@ -63,8 +65,8 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
         PeakOptsMax.MinPeakHeight = Options.PeakThreshold * max(Y);
         PeakOptsMin.MinPeakHeight = Options.PeakThreshold * max(-Y);
         %% Get the Peakposition of both local maxima and minima
-        [~,MaxLocs] = findpeaks(Y,PeakOptsMax);
-        [~,MinLocs] = findpeaks(-Y,PeakOptsMin);
+        [~,MaxLocs] = findpeaks(Y,MinPeakDistance=PeakOptsMax.MinPeakDistance,MinPeakHeight=PeakOptsMax.MinPeakHeight);
+        [~,MinLocs] = findpeaks(-Y,MinPeakDistance=PeakOptsMin.MinPeakDistance,MinPeakHeight=PeakOptsMin.MinPeakHeight);
         %% Check if the Count of local maxima and minima is theoretical possible
         if abs(length(MaxLocs)-length(MinLocs))>2 || (length(MaxLocs)+length(MinLocs))<2 
             Theta(:,iSeg) = NaN(nPointsPerSegment,1);

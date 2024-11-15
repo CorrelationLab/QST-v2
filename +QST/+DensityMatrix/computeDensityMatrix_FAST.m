@@ -22,7 +22,9 @@ clear Xtp;
 nX = length(X);
 nextRho = gpuArray(single(ones(Options.MaxFockState+1,Options.MaxFockState+1)));
 nextRho = nextRho /trace(nextRho);
+tic
 A = gpuArray(single(QST.DensityMatrix.computeProjector1D_FAST( X, Theta, Options.MaxFockState)));
+toc
 B = A';
 tic
 for iRho = 1:Options.Iterations
