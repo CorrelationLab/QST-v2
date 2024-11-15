@@ -39,7 +39,11 @@ for i = Channels
     % 3.2 remove the Offsets
     Data = QST.QuadratureCalculation.removeOffset(Data,"Local"); % remove Offsets (for LOOnly this can be a local offset)
     % 3.3 remove the detectorresponse
-    DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta); % since vacuum has not phaserelation with LO the removal of the detectorresponse can always be applied
+    if ModulatedPhase(i)
+        DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta); % since vacuum has not phaserelation with LO the removal of the detectorresponse can always be applied
+    else
+        DataCleaned = Data;
+    end
     % 3.4 calculate the regularisation based on the LO's distribution width
     Alpha(i) = (1/NORM)*std(DataCleaned(:));% It takes here now the width of all points (one could maybe change this but it should not matter)
 end

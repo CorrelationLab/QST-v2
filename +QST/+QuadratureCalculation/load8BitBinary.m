@@ -84,6 +84,11 @@ if Channelnumber>1
 else
     Data8bit = Data; % one has to check if this works, since the code afterwards is based on 3d arrays
 end
+% faster method to sort the data using reshape
+% Data8Bit = permute(reshape(Data,Channelnumber,Segmentsize,NumberOfRecordings),[2,3,1]); 
+
+
+
 % 4.2.3 close the file again
 fclose(DatafileID);
 
