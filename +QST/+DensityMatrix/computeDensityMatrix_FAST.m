@@ -26,7 +26,6 @@ tic
 A = gpuArray(single(QST.DensityMatrix.computeProjector1D_FAST( X, Theta, Options.MaxFockState)));
 toc
 B = A';
-tic
 for iRho = 1:Options.Iterations
     rhoGPU = nextRho;
     Prob = sum((B*rhoGPU).*(A.'),2).'; % delivers the same result but is way faster
@@ -35,6 +34,5 @@ for iRho = 1:Options.Iterations
     nextRho = R*rhoGPU*R; % ITERATION step
     nextRho = nextRho/trace(nextRho); % normalization
 end
-toc
 
 end
