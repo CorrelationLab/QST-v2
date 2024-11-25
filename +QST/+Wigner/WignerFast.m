@@ -3,8 +3,8 @@ Dir = 'C:\Users\LabCorr Homodyne\Desktop\WignerTest';
 profile on
 maxQ = 20; % quadratic (q,p) space
 maxZeta = 2*maxQ;
-stepsizeQ = 0.125/2;
-stepsizeZeta = 0.125/2;
+stepsizeQ = 0.125;
+stepsizeZeta = 0.125;
 maxFock = 50;
 
 % set values of Q and Zeta
@@ -39,7 +39,7 @@ EXP = exp(-1j*Zeta.'*P);
 for i = 0:maxFock
     W_Pattern = gpuArray(complex(zeros(nQ,nP,maxFock+1-i)));
     for j = i+1:maxFock+1
-        W_Pattern(:,:,j-i) = (n_QminusZetaH(:,:,j-i).*n_QplusZetaH(:,:,j)).'*EXP; % doublecheck the index order
+        W_Pattern(:,:,j-i) = (n_QplusZetaH(:,:,j-i).*n_QminusZetaH(:,:,j)).'*EXP;
     end
     W_Pattern = (1/(2*pi))*stepsizeZeta*W_Pattern;
     W_Pattern = complex(gather(real(W_Pattern)),gather(imag(W_Pattern)));

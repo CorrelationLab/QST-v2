@@ -1,8 +1,9 @@
 Dir = "C:\Users\LabCorr Homodyne\Desktop\WignerTest";
 
-maxFock = 50;
+maxFock = 30;
 Rho = zeros(maxFock+1);
-Rho(49,49) = 1;
+Rho(1,1) = 1;
+
 
 % main diagonal
 load(strcat(Dir,filesep,"WignerPattern_offD0.mat"));
