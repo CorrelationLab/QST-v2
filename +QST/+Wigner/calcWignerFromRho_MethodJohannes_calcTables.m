@@ -11,10 +11,7 @@ function calcWignerFromRho_MethodJohannes_calcTables( nMax, mMax, varargin )
 %QINTSTEP.
 %% Validate and parse input arguments
 p = inputParser;
-defaultDirectory = 'C:\Users\lab\Documents\@archived-data\Wigner';
-%directory = 'Z:\freefilesync-lab\matlab\QST\Wigner';
-%directory = 'D:\@archive\2016-08-30-wigner-test';
-%directory = 'C:\Users\lab\Documents\@archived-data\Wigner-Resolution-0.25';
+defaultDirectory = 'E:\WignerTables\nMax200_Qm20To20Res0i125';
 addParameter(p,'Directory',defaultDirectory,@ischar);
 defaultMinq = -20;
 addParameter(p,'Minq',defaultMinq,@isnumeric);
@@ -40,7 +37,7 @@ QST.Helper.dispstat('Beginning calculation...','keepthis','timestamp');
 parfor i=0:(nMax+1)*(mMax+1)-1
     nVal = floor(i/(mMax+1));
     mVal = mod(i,mMax+1);
-    calcWignerTable(nVal, mVal, directory, minq, maxq, qintstep, overwrite);
+    QST.Wigner.calcWignerTable_Main(nVal, mVal, directory, minq, maxq, qintstep, overwrite);
     QST.Helper.dispstat('','init');
     QST.Helper.dispstat(strcat('FT(<q+1/2*q''|',int2str(nVal),'>*<',int2str(mVal),'|q-1/2*q''>)',' computed!'),'timestamp','keepthis');
 end
