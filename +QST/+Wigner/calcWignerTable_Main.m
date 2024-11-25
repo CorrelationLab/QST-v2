@@ -14,7 +14,7 @@ if (~isFile || overwrite)
     %disp(size(WigTab);
     for q=minq:qintstep:maxq
         for p=minq:qintstep:maxq
-            WigTab(int16((q-minq)/qintstep)+1,int16((p-minq)/qintstep)+1) = wignernm(nVal,mVal,q,p,qintstep,2*minq,2*maxq);
+            WigTab(int16((q-minq)/qintstep)+1,int16((p-minq)/qintstep)+1) = QST.Wigner.calcWignerTable_Sub(nVal,mVal,q,p,qintstep,2*minq,2*maxq);
         end
     end
 
