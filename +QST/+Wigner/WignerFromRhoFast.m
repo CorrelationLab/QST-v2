@@ -1,4 +1,4 @@
-Dir = "C:\Users\LabCorr Homodyne\Desktop\WignerTest2";
+Dir = "/home/marius/PhD/Homodyne_Yannik/WignerTest2";
 
 maxFock = 50;
 Rho = zeros(maxFock+1);
