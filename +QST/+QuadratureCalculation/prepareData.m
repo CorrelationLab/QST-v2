@@ -37,10 +37,10 @@ XLO = QST.QuadratureCalculation.computeQuadratures(Data8bitLO(:,:,Channels),Conf
 for i = Channels
     Data = XLO(:,:,i);
     % 3.2 remove the Offsets
-    Data = QST.QuadratureCalculation.removeOffset(Data,"Local"); % remove Offsets (for LOOnly this can be a local offset)
+    Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(i));
     % 3.3 remove the detectorresponse
-    if ModulatedPhase(i)
-        DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta); % since vacuum has not phaserelation with LO the removal of the detectorresponse can always be applied
+    if RemoveDetectorResponse(i)
+        DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
     else
         DataCleaned = Data;
     end

@@ -3,12 +3,12 @@
 
 % calculates the density matrix for agiven dataset
 Iterations_DataSet = 5;
-maxFock = 200;
-Iterations_DesityConstructor = 300;
+maxFock = 50;
+Iterations_DesityConstructor = 500;
 
 X1_String = "X1";
 PiezoInfos_String = "PiezoInfos";
-Dir = "D:\Data\Artifical DTS\15.11.2024\nRatio_Constant__nTotal_Varied"; % dir of the Series
+Dir = "D:\Data\Artifical DTS\25.11.2024\nCoherent_Constant__nThermal_Varied"; % dir of the Series
 
 Paths = QST.File_Managment.getFilePaths(Dir);
 [~,~,Ext] = fileparts(Paths);
@@ -33,9 +33,8 @@ for j = 1:length(Paths)
     Rhos = zeros(maxFock+1,maxFock+1,Iterations_DataSet);
     for i = 1:Iterations_DataSet
         Rhos(:,:,i) = QST.DensityMatrix.computeDensityMatrix_FAST(X1(:,i),Theta(:,i),MaxFockState=maxFock,Iterations=Iterations_DesityConstructor); % compute Rho using the GPU
-         
     end
-    pause(3);% pause the computation so the GPU can cool down again
+    %pause(3);% pause the computation so the GPU can cool down again
     Rho = mean(Rhos,3);
     varRho = var(Rhos,[],3);
     DensityMatrix.Rho = Rho;

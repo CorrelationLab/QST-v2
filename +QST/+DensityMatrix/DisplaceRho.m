@@ -5,7 +5,7 @@ A = diag(nArray,1);
 Adag = A';
 D = expm(alpha*Adag-conj(alpha)*A);
 
-Rho = D*Rho*D';
+Rho = (D')*Rho*D;
 
 end
 
