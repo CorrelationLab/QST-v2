@@ -19,7 +19,7 @@ function [xvar, yvar, xexp, yexp] = Fit2DGaussian(W, axes, plotEnable)
         error("Not all axes elements specified, required is: [start step stop].");
     end
     %% ---------User Input---------------------
-    MdataSize = 640; % Size of nxn data matrix
+    MdataSize = size(W,1); % Size of nxn data matrix
     % parameters are: [Amplitude, x0, sigmax, y0, sigmay, angel(in rad)]
     x0 = [1,0,50,0,50,0]; %Inital guess parameters
     InterpolationMethod = 'nearest'; % 'nearest','linear','spline','cubic'

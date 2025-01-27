@@ -1,4 +1,4 @@
-Dir = "D:\Data\Artifical DTS\25.11.2024\nCoherent_Constant__nThermal_Varied"; % dir of the Series
+Dir = "D:\Data\Artifical DTS\25.11.2024\nRatio_Constant__nTotal_Varied"; % dir of the Series
 Paths = QST.File_Managment.getFilePaths(Dir);
 [~,~,Ext] = fileparts(Paths);
 Paths = Paths(strcmp(Ext,".mat"));% take only the mat files

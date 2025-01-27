@@ -1,15 +1,17 @@
-Dir = "/home/marius/PhD/Homodyne_Yannik/WignerTest2";
+Dir = "C:\Users\LabCorr Homodyne\Desktop\WignerTest3";
 
 maxFock = 50;
 Rho = zeros(maxFock+1);
 Rho(1,1) = 1;
 %Rho = QST.DensityMatrix.Rho_ThermalState(maxFock,1);
-Rho = QST.DensityMatrix.DisplaceRho(Rho,2+2j);
-
+Rho = QST.DensityMatrix.DisplaceRho(Rho,3+3j);
+Rho = Rho.';
 
 % main diagonal
 load(strcat(Dir,filesep,"WignerPattern_offD0.mat"));
 W = real(sum(reshape(diag(Rho),1,1,[]).*W_Pattern(),3));
+
+
 % side diagonals
 for i = 1:maxFock
     load(strcat(Dir,filesep,"WignerPattern_offD",num2str(i),".mat"));

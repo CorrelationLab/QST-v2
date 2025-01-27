@@ -1,7 +1,7 @@
-Dir = 'C:\Users\LabCorr Homodyne\Desktop\WignerTest2';
+Dir = 'D:\Programming\Wignertables\Start_m10__Step0i0625__End_10__maxFock_50';
 
 profile on
-maxQ = 20; % quadratic (q,p) space
+maxQ = 10; % quadratic (q,p) space
 maxZeta = 2*maxQ;
 stepsizeQ = 0.125/2;
 stepsizeZeta = 0.125/2;
@@ -32,14 +32,17 @@ n_QminusZetaH = flip(n_QplusZetaH,1);
 % create the exp term ; axis1:Zeta, axis2:P
 P = Q;
 nP = nQ;
+%P = gpuArray([-maxQ*1.5:stepsizeQ:maxQ*1.5]);
+%nP = length(P);
 EXP = exp(-1j*Zeta.'*P);
 
 % looping over diagonales (allows to exploit to W_n_m = W_m_n*)
 % goes over the upper triangle matrix and saves it side digaonal wise
 for i = 0:maxFock
-    W_Pattern = gpuArray(complex(zeros(nQ,nP,maxFock+1-i)));
+    W_Pattern = gpuArray(complex(zeros(nP,nQ,maxFock+1-i)));
     for j = i+1:maxFock+1
-        W_Pattern(:,:,j-i) = flip(((n_QplusZetaH(:,:,j-i).*n_QminusZetaH(:,:,j)).'*EXP).',2);
+        W_Pattern(:,:,j-i) = ((n_QplusZetaH(:,:,j-i).*n_QminusZetaH(:,:,j)).'*EXP).';
+        %W_Pattern(:,:,j-i) = flip(((n_QplusZetaH(:,:,j-i).*n_QminusZetaH(:,:,j)).')*EXP).',2);
     end
     W_Pattern = (1/(2*pi))*stepsizeZeta*W_Pattern;
     W_Pattern = complex(gather(real(W_Pattern)),gather(imag(W_Pattern)));
