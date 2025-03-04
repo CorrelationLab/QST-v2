@@ -1,10 +1,14 @@
-function [DirPaths] = getDirectoryPaths(RootDirectory)
+function [DirPaths] = getDirectoryPaths(RootDirectory,IncludeSubDirs)
 %Function that returns a list of all subdirectories of given rootdirectory.
 arguments
     RootDirectory;
+    IncludeSubDirs=true;
 end
-
-DirPaths = dir(fullfile(RootDirectory, '**\*.*')); 
+if IncludeSubDirs == false
+    DirPaths = dir(fullfile(RootDirectory, '*'));
+else
+    DirPaths = dir(fullfile(RootDirectory, '**\*.*'));
+end
 DirPaths = DirPaths([DirPaths.isdir]);
 DirPaths = {DirPaths.folder};
 DirPaths = unique(DirPaths);

@@ -1,11 +1,18 @@
-Dir = 'D:\Programming\Wignertables\Start_m10__Step0i0625__End_10__maxFock_50';
+% legacy script to use until the function based approach works flawlessly
+
+Dir = 'D:\Programming\Wignertables\Start_m5__Step0i015625__End_5__maxFock_75';
 
 profile on
-maxQ = 10; % quadratic (q,p) space
+maxQ = 5; % quadratic (q,p) space
 maxZeta = 2*maxQ;
-stepsizeQ = 0.125/2;
-stepsizeZeta = 0.125/2;
-maxFock = 50;
+stepsizeQ = 0.125/8;
+stepsizeZeta = 0.125/8;
+maxFock = 75;
+
+
+% TEST: shift everything
+ShiftQ = 0;
+ShiftP = 
 
 % set values of Q and Zeta
 Q = gpuArray([-maxQ:stepsizeQ:maxQ]);
