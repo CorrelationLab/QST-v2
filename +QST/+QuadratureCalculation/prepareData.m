@@ -1,13 +1,13 @@
-function [X1,X2,X3,PiezoInfos] = prepareData(Directory, FilenameLO, FilenameSIG, Channels, OffsetType, ModulatedPhase, RemoveDetectorResponse, IntegrationDutyCycle, nMean_Min, Delta, Options)
+function [X1, X2, X3, X4, PiezoInfos] = prepareData(Directory, FilenameLO, FilenameSIG, Channels, OffsetType, ModulatedPhase, RemoveDetectorResponse, IntegrationDutyCycle, nMean_Min, Delta, Options)
 
 arguments
     Directory;
     FilenameLO;
     FilenameSIG;
     Channels;
-    OffsetType = ["Global","Global","Global"]; % this has to be strings!!!
-    ModulatedPhase = [true,true,true];
-    RemoveDetectorResponse = [false,false,false];
+    OffsetType = ["Global","Global","Global","Global"]; % this has to be strings!!!
+    ModulatedPhase = [true,true,true,true];
+    RemoveDetectorResponse = [false,false,false,false];
     IntegrationDutyCycle = 1/3;
     nMean_Min = 10000000;
     Delta = 50;
@@ -96,6 +96,11 @@ X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Confi
                 PiezoInfos.X3.Shape = PiezoShape;
                 PiezoInfos.X3.StartDirection = PiezoStartDirection;
                 PiezoInfos.X3.EdgeIndices = PiezoEdgeIndices;
+            case 4
+                X4 = Data;
+                PiezoInfos.X4.Shape = PiezoShape;
+                PiezoInfos.X4.StartDirection = PiezoStartDirection;
+                PiezoInfos.X4.EdgeIndices = PiezoEdgeIndices;
         end
     end
 end

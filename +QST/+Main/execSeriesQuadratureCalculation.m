@@ -23,9 +23,9 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
         %Parameter:
         Channels;
         
-        Offset = ["Local","Local","Local"]; % this has to be strings!!!
-        ModulatedPhase = [false,false,false];
-        RemoveDetectorResponse = [true,true,true];
+        Offset = ["Local","Local","Local","Local"]; % this has to be strings!!!
+        ModulatedPhase = [false,false,false,false];
+        RemoveDetectorResponse = [true,true,true,true];
         Options.Preset = '';
         Options.IntegrationDutyCycle = 1/3;
         Options.nMean_Min = 1000000;
@@ -46,13 +46,13 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
 %% 0. set Offset, ModulatedPhase and RemoveDetectorResponse according to a preset to save time
 switch Options.Preset
     case 'FixedPhase'
-        Offset = ["Global","Global","Global"];
-        ModulatedPhase = [true,true,true];
-        RemoveDetectorResponse = [false,false,false];
+        Offset = ["Global","Global","Global","Global"];
+        ModulatedPhase = [true,true,true,true];
+        RemoveDetectorResponse = [false,false,false,false];
     case 'RandomPhase'
-        Offset = ["Local","Local","Local"];
-        ModulatedPhase = [false,false,false];
-        RemoveDetectorResponse = [true,true,true];
+        Offset = ["Local","Local","Local","Local"];
+        ModulatedPhase = [false,false,false,false];
+        RemoveDetectorResponse = [true,true,true,true];
 end
 
 
@@ -84,7 +84,7 @@ parfor i = 1:length(SubDirectories)
     end
     assert(FileName_LOOnly ~= "" && FileName_LOAndSignal ~= "","Filenames are wrong: LOOnly and/or LOAndSignal Files could not be found")
     % 2.4 calculate the Quadratures
-    [X1, X2, X3, PiezoInfos] = QST.QuadratureCalculation.prepareData(Dir,...
+    [X1, X2, X3, X4, PiezoInfos] = QST.QuadratureCalculation.prepareData(Dir,...
                                      char(FileName_LOOnly),...
                                      char(FileName_LOAndSignal),...
                                      Channels,...
@@ -105,7 +105,7 @@ parfor i = 1:length(SubDirectories)
     end
 
     % save the data
-    QST.QuadratureCalculation.saveQuadratures(SaveDirectory, 'Matdata', X1, X2, X3, PiezoInfos);
+    QST.QuadratureCalculation.saveQuadratures(SaveDirectory, 'Matdata', X1, X2, X3,X4, PiezoInfos);
     % create some extra Config to save the analysis parameter (to be implemented)
     %QST.QuadratureCalculation.saveAnalyseParameters([],QuadratureCalculation,Channels,)
 end
