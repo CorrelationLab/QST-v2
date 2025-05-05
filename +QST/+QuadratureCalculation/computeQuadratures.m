@@ -33,7 +33,7 @@ c = struct2cell(p.Results);
 SAMPLERATE = config.SpectrumCard.Clock.SamplingRate_MHz__DBL * 1e6;
 ELEMENTARY_CHARGE = 1.6021766208e-19;
 
-switch config.SpectrumCard.Channel00.Range_I32
+switch config.SpectrumCard.Channel01.Range_I32 % switched here from 00 to 01, since Channel IDs start now at 1 (and not as 0 as before)
     case 0
         INT8_TO_VOLTAGE = 0.200/128;
     case 1

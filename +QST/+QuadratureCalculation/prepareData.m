@@ -12,6 +12,7 @@ arguments
     nMean_Min = 10000000;
     Delta = 50;
     Options.UseLegacySyntax = false;
+    Options.StarHubIncluded = true;
 end
 
 %% 1. set Constants
@@ -22,10 +23,18 @@ CALIBRATION_CH1 = 4.596047840078126e-05;
 QST.Helper.dispstat('','init','timestamp','keepthis',0);
 % 2.1 load LO only
 QST.Helper.dispstat('Load LO data','timestamp','keepthis',0);
-[Data8bitLO,ConfigLO,~]= QST.QuadratureCalculation.load8BitBinary(Directory, FilenameLO, SaveData=false, UseLegacySyntax=Options.UseLegacySyntax);
+if Options.StarHubIncluded == true
+    [Data8bitLO,ConfigLO,~]= QST.QuadratureCalculation.load8BitBinary_MultiADC(Directory, FilenameLO, SaveData=false, UseLegacySyntax=Options.UseLegacySyntax);
+else
+    [Data8bitLO,ConfigLO,~]= QST.QuadratureCalculation.load8BitBinary(Directory, FilenameLO, SaveData=false, UseLegacySyntax=Options.UseLegacySyntax);
+end
 % 2.2 load LO + Signal
 QST.Helper.dispstat('Load LO + Signal data','timestamp','keepthis',0);
-[Data8bitSIG,ConfigSIG,TimestampSIG]= QST.QuadratureCalculation.load8BitBinary(Directory, FilenameSIG, SaveData=false,UseLegacySyntax=Options.UseLegacySyntax);
+if Options.StarHubIncluded == true
+    [Data8bitSIG,ConfigSIG,TimestampSIG]= QST.QuadratureCalculation.load8BitBinary_MultiADC(Directory, FilenameSIG, SaveData=false,UseLegacySyntax=Options.UseLegacySyntax);
+else
+    [Data8bitSIG,ConfigSIG,TimestampSIG]= QST.QuadratureCalculation.load8BitBinary(Directory, FilenameSIG, SaveData=false,UseLegacySyntax=Options.UseLegacySyntax);
+end
 
 
 %% 3. compute Number of LO Photons
@@ -55,7 +64,7 @@ QST.Helper.dispstat('compute Lo + Signal quadratures','timestamp','keepthis',0);
 X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),ConfigSIG,CALIBRATION_CH1,DutyCycle=IntegrationDutyCycle);
 
 
-[X1, X2, X3] = deal(0);
+[X1, X2, X3, X4] = deal(0);
 %% from now on each Channel individually
     for iCh = Channels
         Data = X(:,:,iCh);

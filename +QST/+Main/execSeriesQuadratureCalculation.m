@@ -34,6 +34,7 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
         Options.Token_LOOnly = "LOOnly";
         Options.Token_LOAndSignal = "LOwithSIG";
         Options.UseLegacySyntax = false;
+        Options.StarHubIncluded = true;
     end
     IntegrationDutyCycle = Options.IntegrationDutyCycle;
     nMean_Min = Options.nMean_Min;
@@ -41,6 +42,7 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels,Offset,Modulat
     Token_LOOnly = Options.Token_LOOnly;
     Token_LOAndSignal = Options.Token_LOAndSignal;
     UseLegacySyntax = Options.UseLegacySyntax;
+    StarHubIncluded = Options.StarHubIncluded;
 
 
 %% 0. set Offset, ModulatedPhase and RemoveDetectorResponse according to a preset to save time
@@ -60,7 +62,7 @@ end
 SubDirectories = QST.File_Managment.getDirectoryPaths(Directory);
 
 %% 2. calculate and save the quadratures for each recorded dataset
-parfor i = 1:length(SubDirectories)
+for i = 1:length(SubDirectories)
     Dir = SubDirectories(i);
     FileName_LOOnly = "";
     FileName_LOAndSignal = "";
@@ -94,7 +96,8 @@ parfor i = 1:length(SubDirectories)
                                      IntegrationDutyCycle,...
                                      nMean_Min,...
                                      Delta,...
-                                     UseLegacySyntax=UseLegacySyntax);
+                                     UseLegacySyntax=UseLegacySyntax, ...
+                                     StarHubIncluded=StarHubIncluded);
     
     % 2.5 save the calculated quadratures
     % create Folder
