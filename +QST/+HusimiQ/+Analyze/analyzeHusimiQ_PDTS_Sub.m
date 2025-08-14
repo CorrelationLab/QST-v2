@@ -46,14 +46,15 @@ scatter(alphaFit,HusimiFit)
 
 
 % the actual fit
-FitFunction = fittype('0.5*Resolution^2*(pi*(a1+1))^-1 *exp(-(x.^2 + b1)/(a1+1)) .* besseli(0,2*x*sqrt(b1)/(a1+1))','problem','Resolution'); 
+FitFunction = fittype('c+0.5*Resolution^2*(pi*(a1+1))^-1 *exp(-(x.^2 + b1)/(a1+1)) .* besseli(0,2*x*sqrt(b1)/(a1+1))','problem','Resolution'); 
 
 %The Fit
-[Params,gof,~] = fit(alphaFit,HusimiFit,FitFunction,'problem',Resolution,'StartPoint', [nTherm,nCoherent],'Lower',[0,0],'Robust','LAR' );
+[Params,gof,~] = fit(alphaFit,HusimiFit,FitFunction,'problem',Resolution,'StartPoint', [nTherm,nCoherent,1e-4],'Lower',[0,0,0],'Robust','LAR' );
 
 % get fitparameter back
 nTherm = Params.a1;
 nCoherent = Params.b1;
+backgroundOffset = Params.c;
 % derive nRatio, g2 and the quantum coherence from it
 nRatio = nCoherent/nTherm;
 G2 = 2 - (nCoherent/(nCoherent+nTherm))^2;
