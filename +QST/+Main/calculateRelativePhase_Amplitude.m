@@ -81,6 +81,7 @@
     ylabel('Probability density');
     title('Relative Phase (BEC+Vacuum)');
     xlim([-pi, pi]);
+    ylim([0, 0.4]);
     xticks([-pi, -pi/2, 0, pi/2, pi]);
     xticklabels({'-\pi', '-\pi/2', '0', '\pi/2', '\pi'});
 
@@ -91,17 +92,20 @@
     ylabel('Probability density');
     title('Relative Phase (only BEC)');
     xlim([-pi, pi]);
+    ylim([0, 0.4]);
     xticks([-pi, -pi/2, 0, pi/2, pi]);
     xticklabels({'-\pi', '-\pi/2', '0', '\pi/2', '\pi'});
+    %circular variance
+    r_mean = mean(exp(1i*Rphi_filtered));
+    Var_Rphi = 1-abs(r_mean);
     %Calculates the most probable value of the histogram
     bin_centers = (h.BinEdges(1:end-1) + h.BinEdges(2:end)) / 2;
     [~, idx_max] = max(h.Values);
     most_probable_value = bin_centers(idx_max)/pi;
     % Add label with most probable value of the histogram
-    text_x4 = -1; % X coordinate
-    text_y4 = 0.95 * max(ylim); % below maximum of top Y axis
-    label= sprintf('Mean = %.2f \\pi', most_probable_value);
-    text(text_x4, text_y4, label, 'FontSize', 10, 'FontWeight', 'bold', 'Interpreter','tex');
+    text_x4 = -0.5; % X coordinate
+    text_y4 = 0.93 * max(ylim); % below maximum of top Y axis
+    text(text_x4, text_y4, sprintf('Mean = %.2f \\pi\nCircular Variance = %.3f', most_probable_value, Var_Rphi), 'FontSize', 10, 'FontWeight', 'bold', 'Interpreter','tex');
  
 
     subplot(2,4,5);
@@ -148,10 +152,13 @@
     ylabel('Probability density');
     title('Difference Mode2-Mode1 (only BEC)');
     xlim([-5, 5]);
+    %variance
+    Var_A = var(Difference_filtered);
+    Std_A = sqrt(Var_A);
     % Add label with mean value of the histogram
-    text_x8 = 0.4 * max(xlim); % X coordinate
-    text_y8 = 0.95 * max(ylim); % below maximum of top Y axis
-    text(text_x8, text_y8, sprintf('Mean = %.2f', meanA4), 'FontSize', 10, 'FontWeight', 'bold');
+    text_x8 = 0.25 * max(xlim); % X coordinate
+    text_y8 = 0.93 * max(ylim); % below maximum of top Y axis
+    text(text_x8, text_y8, sprintf('Mean = %.2f\nVariance = %.3f', meanA4, Var_A), 'FontSize', 10, 'FontWeight', 'bold');
 
 
 
@@ -161,5 +168,6 @@ for i = 1:8
     subplot(2,4,i);
     pbaspect(myAspectRatio);
 end
+
 
 
