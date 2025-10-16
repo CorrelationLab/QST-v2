@@ -73,6 +73,17 @@ end
             Options.FigureSaveDirName = 'Results HusimiQ DTS Condensate';
             Options.FigureSaveName_2D = 'HusimiQ-2D-Condensate';
             Options.FigureSaveName_1D = 'HusimiQ-1D-Condensate';
+        case 'PulseSelected'
+            Options.X1_IndicesString = '';
+            Options.X2_IndicesString = '';
+            Options.X1_EdgeIndicesString = [strcat("Results_N_G2_TimeResolved.Channel",string(Channel(1)),".EdgeIndices_Select"),...
+                                            strcat("Results_N_G2_TimeResolved.Channel",string(Channel(1)),".EdgeIndices")];
+            Options.X2_EdgeIndicesString = [strcat("Results_N_G2_TimeResolved.Channel",string(Channel(2)),".EdgeIndices_Select"),...
+                                            strcat("Results_N_G2_TimeResolved.Channel",string(Channel(2)),".EdgeIndices")];
+            Options.ResultSaveVariable = 'Results_HusimiQ_DTS_PulseSelected';
+            Options.FigureSaveDirName = 'Results HusimiQ DTS PulseSelected';
+            Options.FigureSaveName_2D = 'HusimiQ-2D-PulseSelected';
+            Options.FigureSaveName_1D = 'HusimiQ-1D-PulseSelected';
         otherwise
             
     end
