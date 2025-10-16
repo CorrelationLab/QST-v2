@@ -34,12 +34,12 @@ HusimiFit = HusimiQ(:);
 
 % Test (06.11.2024): filter for parts of the Husimi Q function to overcome the problem of the missing detector removal
 %PhaseLimits = [-pi/8,pi/8];
-PhaseLimits = [-pi/8+pi/4,pi/8+pi/4];
+%PhaseLimits = [-pi/8+pi/4,pi/8+pi/4];
 %PhaseLimits = [-pi/8+pi/2,pi/8+pi/2];
-Indices = find(alphaFitPhase > PhaseLimits(1) &  alphaFitPhase < PhaseLimits(2));
-alphaFit = alphaFit(Indices);
-alphaFitPhase = alphaFitPhase(Indices);
-HusimiFit = HusimiFit(Indices);
+%Indices = find(alphaFitPhase > PhaseLimits(1) &  alphaFitPhase < PhaseLimits(2));
+%alphaFit = alphaFit(Indices);
+%alphaFitPhase = alphaFitPhase(Indices);
+%HusimiFit = HusimiFit(Indices);
 
 hold on
 scatter(alphaFit,HusimiFit)
