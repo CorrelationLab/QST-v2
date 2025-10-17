@@ -1,4 +1,4 @@
-function [] = createTimeResolvedHusimiMovie(Options)
+function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
 % function that creates a movie based on a timeresolved Husimi Q distribution
     arguments
         %Option for the quadrature selection

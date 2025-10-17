@@ -20,7 +20,7 @@ function [X, EdgeIndices] = segmentQuads_StaticAverage(X,AverageSize,Options)
     end
 
     %% 4. Save the Borders of the used Segmentation to be able to recalculate the actual Quadrature Indicees from it
-    EdgeIndices = [     1      : AverageSize :  NSegments*AverageSize;...
-                   AverageSize : AverageSize :  NSegments*AverageSize];
+    EdgeIndices = [     1      : AverageSize :  nSegments*AverageSize;...
+                   AverageSize : AverageSize :  nSegments*AverageSize];
 
 end
