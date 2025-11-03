@@ -42,13 +42,14 @@ QST.Helper.dispstat('calculate laser amplification','timestamp','keepthis',0);
 Alpha = zeros(length(Channels),1); %The Magnification created by the LO % This is better replaced by a dictionary (new since Matlab 2022b)
 
 %3.1 calculate the not regulized quadratures for the LO
-XLO = QST.QuadratureCalculation.computeQuadratures(Data8bitLO(:,:,Channels),ConfigLO, CALIBRATION_CH1,DutyCycle=IntegrationDutyCycle);
-for i = Channels
+XLO = QST.QuadratureCalculation.computeQuadratures(Data8bitLO(:,:,Channels),Channels,ConfigLO, CALIBRATION_CH1,DutyCycle=IntegrationDutyCycle);
+nChannels = length(Channels);
+for i = 1:nChannels
     Data = XLO(:,:,i);
     % 3.2 remove the Offsets
-    Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(i));
+    Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(Channels(i)));
     % 3.3 remove the detectorresponse
-    if RemoveDetectorResponse(i)
+    if RemoveDetectorResponse(Channels(i))
         DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
     else
         DataCleaned = Data;
@@ -61,26 +62,26 @@ end
 %% 4. calculate Quadratures with Signal and rescale regarding LO power
 % 4.1 calculate the Quadratures
 QST.Helper.dispstat('compute Lo + Signal quadratures','timestamp','keepthis',0);
-X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),ConfigSIG,CALIBRATION_CH1,DutyCycle=IntegrationDutyCycle);
+X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Channels,ConfigSIG,CALIBRATION_CH1,DutyCycle=IntegrationDutyCycle);
 
 
 [X1, X2, X3, X4] = deal(0);
 %% from now on each Channel individually
-    for iCh = Channels
+    for iCh = 1:nChannels
         Data = X(:,:,iCh);
         DataShape = size(Data);
         % 4.2 rescale the Quadratures
         Data = Data / Alpha(iCh);
         % 4.3 remove the offset
-        Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(iCh));
+        Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(Channels(iCh)));
         % 4.4 remove the Detectorresponse
         Data = Data(:);
-        if RemoveDetectorResponse(iCh)
-            QST.Helper.dispstat(['Remove Detectorresponse from Channel ',num2str(iCh),'...'],'timestamp','keepthis',0);
+        if RemoveDetectorResponse(Channels(iCh))
+            QST.Helper.dispstat(['Remove Detectorresponse from Channel ',num2str(Channels(iCh)),'...'],'timestamp','keepthis',0);
             Data = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
         end
         % 4.5 cut the data in piezos according to the observed piezo movement if piezo was active on this channel
-        if ModulatedPhase(iCh)
+        if ModulatedPhase(Channels(iCh))
             Data = reshape(Data,DataShape);% reshape Data back into the segments
             [Data, PiezoShape, PiezoStartDirection,PiezoEdgeIndices] = QST.QuadratureCalculation.getPiezoSegments(Data,TimestampSIG,SegmentSelectionMode='MaxLength');
         else
@@ -89,8 +90,8 @@ X = QST.QuadratureCalculation.computeQuadratures(Data8bitSIG(:,:,Channels),Confi
             PiezoEdgeIndices = [1, length(Data)];
         end
         %% asign the cleaned Data to the Channels
-        switch iCh
-            case 1
+        switch Channels(iCh)
+            case 1 
                 X1 = Data;
                 PiezoInfos.X1.Shape = PiezoShape;
                 PiezoInfos.X1.StartDirection = PiezoStartDirection;

@@ -1,4 +1,4 @@
-function [ X ] = computeQuadratures( data8bit, config, amperePerVolt, varargin )
+function [ X ] = computeQuadratures( data8bit, channels,config, amperePerVolt, varargin )
 %COMPUTEQUADRATURES Compute quadrature values in number of photons
 %
 % CALIBRATION is given in A/V
@@ -33,15 +33,21 @@ c = struct2cell(p.Results);
 SAMPLERATE = config.SpectrumCard.Clock.SamplingRate_MHz__DBL * 1e6;
 ELEMENTARY_CHARGE = 1.6021766208e-19;
 
-switch config.SpectrumCard.Channel01.Range_I32 % switched here from 00 to 01, since Channel IDs start now at 1 (and not as 0 as before)
-    case 0
-        INT8_TO_VOLTAGE = 0.200/128;
-    case 1
-        INT8_TO_VOLTAGE = 0.500/128;
-    case 2
-        INT8_TO_VOLTAGE = 1.0/128;
-    case 3
-        INT8_TO_VOLTAGE = 2.5/128;
+INT8_TO_VOLTAGE = zeros(length(channels),1);
+
+
+for iCh = 1:length(channels)
+    Range = config.SpectrumCard.(char("Channel0"+string(channels(iCh)))).Range_I32;
+    switch Range % switched here from 00 to 01, since Channel IDs start now at 1 (and not as 0 as before)
+        case 0
+            INT8_TO_VOLTAGE(iCh) = 0.200/128;
+        case 1
+            INT8_TO_VOLTAGE(iCh) = 0.500/128;
+        case 2
+            INT8_TO_VOLTAGE(iCh) = 1.0/128;
+        case 3
+            INT8_TO_VOLTAGE(iCh) = 2.5/128;
+    end
 end
 
 %% Loop over all channels and compute quadratures
@@ -120,7 +126,7 @@ for iCh = 1:nChannels
         X(iWindow, :, iCh) = sum(data8bit(start(iWindow):stop(iWindow), ...
             :,iCh))*windowTime(iWindow);
     end % iWindow
-    X(:,:,iCh) = X(:,:,iCh) * INT8_TO_VOLTAGE * ...
+    X(:,:,iCh) = X(:,:,iCh) * INT8_TO_VOLTAGE(iCh) * ...
         amperePerVolt / ELEMENTARY_CHARGE;
 end % iCh
 

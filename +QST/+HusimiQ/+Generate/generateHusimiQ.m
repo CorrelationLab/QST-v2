@@ -6,7 +6,8 @@ arguments
     X2;
     Options.Limits_Q = [-10,10];
     Options.Limits_P = [-10,10];
-    Options.Resolution=0.1;
+    Options.Resolution=0.05;
+    Options.Normalization = "probability";
 end
 Limits_Q = Options.Limits_Q;
 Limits_P = Options.Limits_P;
@@ -23,7 +24,7 @@ BinsRight_P = [Resolution/2:Resolution:Limits_P(2)+Resolution/2];
 Edges_P = cat(2,BinsLeft_P,BinsRight_P);
 
 
-[HusimiQ] = histcounts2(X1,X2,Edges_Q,Edges_P,Normalization="probability");
+[HusimiQ] = histcounts2(X1,X2,Edges_Q,Edges_P,Normalization=Options.Normalization);
 Bins_Q = (Edges_Q(1:end-1) + Edges_Q(2:end))/2;
 Bins_P = (Edges_P(1:end-1) + Edges_P(2:end))/2;
 
