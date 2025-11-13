@@ -62,7 +62,7 @@ end
 SubDirectories = QST.File_Managment.getDirectoryPaths(Directory);
 
 %% 2. calculate and save the quadratures for each recorded dataset
-for i = 1:length(SubDirectories)
+parfor i = 1:length(SubDirectories)
     Dir = SubDirectories(i);
     FileName_LOOnly = "";
     FileName_LOAndSignal = "";
