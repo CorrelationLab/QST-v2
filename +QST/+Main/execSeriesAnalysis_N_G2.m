@@ -7,6 +7,7 @@ function []  = execSeriesAnalysis_N_G2(RootDirectory,Channels,Options)
         Options.AverageSize = 10000;
         Options.StepSize = 1000;
         Options.Samplerate = 74.3864;
+        Options.VacuumCorrection = false;
     end
 
 MatPaths = QST.File_Managment.getFilePaths(RootDirectory);
