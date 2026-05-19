@@ -12,7 +12,8 @@ function [N, G2, Times,EdgeIndices] = calcTimeResolved_N_G2(X,Options)
 % StepSize :                StepSize between consecutively Calculations for the moving Average
 % Samplerate :              Samplerate of the Quadratures corresponding to
 %                           the repetition rate of the pulsed LO in MHz
-%
+% VacuumCorrection :        It ensures that vacuum level is well defined, for that it normalizes
+%                           the quadratures so vacuum variance = 1/2 and thus, photon number at vacuum = 0
 %
 % G2 :                      Vector of the calculated G2(0) values
 % N :                       Vector of the calculated N values
@@ -25,9 +26,49 @@ function [N, G2, Times,EdgeIndices] = calcTimeResolved_N_G2(X,Options)
         Options.AverageSize {mustBeInteger,mustBePositive} = 10000;
         Options.StepSize {mustBeInteger,mustBePositive} = 1000;
         Options.Samplerate {mustBeNumeric, mustBePositive} = 74.3864
+        Options.VacuumCorrection (1,1) logical = false;
     end
 
-    %% 1. Segment Data according to the Averagemethod
+    %% 0. Optional vacuum correction (threshold-based)
+    % Threshold can be redefined if necessary, right now = prctile(Ntemp,30);
+
+    if Options.VacuumCorrection
+
+        % Rough sliding estimate of photon number
+        % used only for vacuum identification
+        tempWindow = Options.AverageSize;
+
+        % Segment temporarily
+        Xtemp = QST.QuadratureSelection.segmentQuads_MovingAverage( ...
+        X, tempWindow, tempWindow);
+
+        % Estimate local photon number
+        Ntemp = mean(Xtemp.^2,1) - 0.5;
+
+        % Identify vacuum regions
+        threshold = prctile(Ntemp,30);
+        vacuumMask = Ntemp < threshold;
+
+        % Extract vacuum quadratures
+        Xvac = Xtemp(:,vacuumMask);
+        Xvac = Xvac(:);
+
+        % Estimate vacuum variance
+        vacuumVariance = mean(Xvac.^2);
+
+        % Safety check
+            if vacuumVariance <= 0
+                warning('Vacuum quadrature correction skipped: invalid variance.');
+            else
+
+        % Normalize quadratures so vacuum variance = 1/2
+            normalizationFactor = sqrt(2*vacuumVariance);
+
+            X = X ./ normalizationFactor;
+            end
+end
+
+%% 1. Segment Data according to the Averagemethod
     switch Options.AverageMethod
         case 'static'
             [X, EdgeIndices] = QST.QuadratureSelection.segmentQuads_StaticAverage(X,Options.AverageSize);
