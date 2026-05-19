@@ -1,4 +1,4 @@
-function [Time_Select,N_Select,G2_Select,EdgeIndices_Select] = selectQuads_byPulses(Time,N,f,Threshold,Flank,G2,EdgeIndices)
+function [Time_Select,N_Select,G2_Select,EdgeIndices_Select,Times_Vac,N_Vac,G2_Vac,EdgeIndices_Vac] = selectQuads_byPulses(Time,N,f,Threshold,Flank,G2,EdgeIndices)
     arguments
         Time;
         N;
@@ -37,7 +37,13 @@ function [Time_Select,N_Select,G2_Select,EdgeIndices_Select] = selectQuads_byPul
     %% Defining the new pulsedges with possible Outliers included
     edges = diff([0, above_threshold, 0]);  
     start_inds = find(edges == 1);
-    end_inds = find(edges == -1) - 1;      
+    end_inds = find(edges == -1) - 1;
+
+    %% Removing uncompleted pulses on the end
+    if ~isempty(end_inds) && end_inds(end) >= length(N) - 1 
+        start_inds(end) = [];
+        end_inds(end) = [];
+    end
 
     %% Puls flank cutting
     puls_lengths = end_inds-start_inds + 1;
@@ -49,6 +55,31 @@ function [Time_Select,N_Select,G2_Select,EdgeIndices_Select] = selectQuads_byPul
     valid = (end_inds > start_inds);    %keeping valid pulses
     start_inds = start_inds(valid);
     end_inds   = end_inds(valid);
+
+    %% Build signal mask 
+    signalMask = false(size(N));
+
+    for k = 1:length(start_inds)
+        signalMask(start_inds(k):end_inds(k)) = true;
+    end
+
+    %% Vacuum mask = complement of signal mask
+    
+    vacuumMask = ~signalMask;
+    Times_Vac = Times(vacuumMask);
+    N_Vac     = N(vacuumMask);
+
+    if ~isempty(G2)
+        G2_Vac = G2(vacuumMask);
+    else
+        G2_Vac = [];
+    end
+    
+    edges_vac = diff([0, vacuumMask, 0]);
+    start_vac = find(edges_vac == 1);
+    end_vac   = find(edges_vac == -1) - 1;
+    EdgeIndices_Vac = [start_vac; end_vac];
+    
 
     %% Extract pulses and concatenate them
     Time_Select = [];
