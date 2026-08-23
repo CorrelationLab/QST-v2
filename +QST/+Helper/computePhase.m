@@ -16,14 +16,8 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
 %                                     Default is 0.5
 % IgnoredSegments:                    Array of Indices of in the calculation
 %                                     ignored Segments. Default is []
-% Smoothing_Type :                    Type of Crosscorrelationsmoothing used in
-%                                     the Phasecalculationprocess. Default is 'Spline'.
 % Smoothing_Accuracy_Spline :         Accuracy of the Spline Interpolation Method for the
 %                                     CrossCorrelation Smoothing used in the Phasecalculationprocess. Default is 1e-14.
-% Smoothing_Accuracy_MovingAverage :  Accuracy of the Moving Window Average Method for the
-%                                               CrossCorrelation Smoothing used in the Phasecalculationprocess. Default is 20.
-%
-%
 % OUTPUTS:
 % Theta :                             Phase between A and B reduced to values between 0 and 2 pi
 % Theta_Absolute :                    Total, non reduced Phase
@@ -36,14 +30,12 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
         Options.PeriodsPerSegment {mustBeNonnegative} = 2
         Options.PeakThreshold {mustBeInRange(Options.PeakThreshold,0,1)} = 0.5
         Options.IgnoredSegments = []
-        Options.Smoothing_Type {mustBeMember(Options.Smoothing_Type, ["Spline","MovingAverage"])} = "Spline"
         Options.Smoothing_Accuracy_Spline {mustBeInRange(Options.Smoothing_Accuracy_Spline,0,1)} = 1e-14;
-        Options.Smoothing_Accuracy_MovingAverage {mustBeNonnegative} = 20;
     end
 
     % Calculate the smoothed Crosscorrelation between Xa and Xb
     tic
-    Y_Smoothed = QST.Helper.calcSmoothedCrossCorr(Xa,Xb,Type=Options.Smoothing_Type,Accuracy_Spline=Options.Smoothing_Accuracy_Spline,Accuracy_MovingAverage=Options.Smoothing_Accuracy_MovingAverage);
+    Y_Smoothed = QST.Helper.calcSmoothedCrossCorr(Xa,Xb,Accuracy_Spline=Options.Smoothing_Accuracy_Spline);
     toc
     % Set Dimensions of used Data 
     [nPointsPerSegment,nSegments] = size(Y_Smoothed);
