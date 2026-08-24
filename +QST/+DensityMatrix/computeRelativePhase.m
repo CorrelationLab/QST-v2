@@ -1,27 +1,30 @@
-function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Options)
-% COMPUTEPHASE calculates the phase between two Quadraturesets Xa and Xb, which phaserelation is constantly changed by an piezo
-% (which changes sligtly the beampath and therefore its length).
+function [Theta, Theta_Absolute, Y_Smoothed] = computeRelativePhase(Xa,Xb, PiezoSign, Options)
+%% Description:
+%   This function reads in two quadrature matrices, whose phase relation has been constantly changed by a piezo actuator
+%   and computes the relative phase between both.
 %
-% INPUTS:
-% Xa :                                Quadratures of Channel A
-% Xb :                                Quadratures of Channel B
-% PiezoSign :                         Sign of Piezomovement of first Segment (1: positive, way gets longer, -1: negative, way gets shorter)
+%% Syntax:
+%   [Theta, Theta_Absolute, Y_Smoothed] = computeRelativeTheta(Xa, Xb, PeriodsPerSegment=2, PeakThreshold=0.5, IgnoredSegments=[], Acurracy_Spline=1e-15)
 %
+%% Input:
+% required input values;
+%   Xa                                  - quadratures of Channel A
+%   Xb                                  - quadratures of Channel B
+%   PiezoSign                           - sign of piezo movement of the first Segment (1: positive, way gets longer, -1: negative, way gets shorter)
 %
-% OPTIONS:
-% PeriodsPerSegment :                 Guessed count of occuring phasepasses in
-%                                     the Crosscorelation of X_PsFast and
-%                                     X_Target. Default is 2.
-% PeakThreshold :                     Relative Threshold (compared to Segments Maximum) for Detection of Peaks.
-%                                     Default is 0.5
-% IgnoredSegments:                    Array of Indices of in the calculation
-%                                     ignored Segments. Default is []
-% Smoothing_Accuracy_Spline :         Accuracy of the Spline Interpolation Method for the
-%                                     CrossCorrelation Smoothing used in the Phasecalculationprocess. Default is 1e-14.
-% OUTPUTS:
-% Theta :                             Phase between A and B reduced to values between 0 and 2 pi
-% Theta_Absolute :                    Total, non reduced Phase
-% Y_Smoothed :                        Smoothed CrossCorrelation between A and B
+% optional input values;
+%   Options.PeriodsPerSegment=2         - initial guess of occuring phasecycles in one segment of nearly linear piezo movement
+%   Options.PeakThreshold=0.5           - relative threshold in comparison to the segments extreme values for the detection of peaks
+%   Options.IgnoredSegments=[]          - array of segments that should be excluded from the analysis. The segments are identified by their segment index 
+%   Options.Accuracy_Spline=1e-14       - spline interpolation accuracy. The value is between 0 and 1. The interpolation accuracy 
+%                                         increases nonlinear with increasing value (see documentation of csaps())
+%
+%% Output:
+%   Theta                               - relative phase between A and B reduced to the value range [0,2*pi)
+%   Theta_Absolute                      - relative phase between A and B    
+%   Y_Smoothed                          - smoothed cross correlations
+
+
 
     arguments(Input)
         Xa
@@ -33,44 +36,53 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
         Options.Smoothing_Accuracy_Spline {mustBeInRange(Options.Smoothing_Accuracy_Spline,0,1)} = 1e-14;
     end
 
-    % Calculate the smoothed Crosscorrelation between Xa and Xb
-    tic
-    Y_Smoothed = QST.Helper.calcSmoothedCrossCorr(Xa,Xb,Accuracy_Spline=Options.Smoothing_Accuracy_Spline);
-    toc
-    % Set Dimensions of used Data 
+    % Calculate the smoothed cross correlation between Xa and Xb
+    Y_Smoothed = QST.DensityMatrix.computeSmoothedCrossCorr(Xa,Xb,Accuracy_Spline=Options.Smoothing_Accuracy_Spline);
+
+    % Set dimensions of the used data 
     [nPointsPerSegment,nSegments] = size(Y_Smoothed);
     nPointsPerPeriod = nPointsPerSegment / Options.PeriodsPerSegment;
     Theta = zeros(nPointsPerSegment,nSegments);
-    % Do the following calculation for every Segment (can maybe be calculated parallel)
+
+    % execute the phase computation on every piezo segment individually (This step could be paralized in a future update)
     for iSeg = [1:nSegments]
-        %% Ignore segments listed in Options.IgnoredSegments
+
+        % Ignore the current piezo segment if it is listed in Options.IgnoredSegments
         if sum(Options.IgnoredSegments == iSeg)>0
             Theta(:,iSeg) = NaN(nPointsPerSegment,1);
             continue
         end
-        %% Calculate the Deviation from the segmentmean
+        
+        %% Distribute the data inside the current segment in subsegments dependent on if the curve is rising phi:(-pi,0] or falling phi:(0,pi].
+        %% To this end find the extrema inside the functiongraph of the slow moving cross correlation associated with the piezo movement
+        % Consider the quadratures in relation to the segmentwise mean
         Y = Y_Smoothed(:,iSeg);
         Y = Y - mean(Y,1);
-        %% Set Parameter for '_findpeaks_'
+
+        % Set parameter for '_findpeaks_'
         PeakOptsMax.MinPeakDistance = 0.6 * nPointsPerPeriod;
         PeakOptsMin.MinPeakDistance = 0.6 * nPointsPerPeriod;
         PeakOptsMax.MinPeakHeight = Options.PeakThreshold * max(Y);
         PeakOptsMin.MinPeakHeight = Options.PeakThreshold * max(-Y);
-        %% Get the Peakposition of both local maxima and minima
+
+        % Get the peakposition of both local maxima and minima
         [~,MaxLocs] = findpeaks(Y,MinPeakDistance=PeakOptsMax.MinPeakDistance,MinPeakHeight=PeakOptsMax.MinPeakHeight);
         [~,MinLocs] = findpeaks(-Y,MinPeakDistance=PeakOptsMin.MinPeakDistance,MinPeakHeight=PeakOptsMin.MinPeakHeight);
-        %% Check if the Count of local maxima and minima is theoretical possible
+
+        % Check if the count of local maxima and minima is theoretical possible
         if abs(length(MaxLocs)-length(MinLocs))>2 || (length(MaxLocs)+length(MinLocs))<2 
             Theta(:,iSeg) = NaN(nPointsPerSegment,1);
             continue
         end
-        %% Sort the Peaks (assumption: we only see "global" maxima and minima)
-        MaxPeaks = Y(MaxLocs); %ColumnVectors!!!
+
+        % Sort the peaks (assumption: we only see "global" maxima and minima)
+        MaxPeaks = Y(MaxLocs);
         MinPeaks = Y(MinLocs);
         [PeakLocs, PeakLocs_Indices] = sort([MaxLocs;MinLocs]);
         Peaks = [MaxPeaks;MinPeaks];
-        Peaks = Peaks(PeakLocs_Indices); 
-        %% Account for wrongly detected peaks close to the boundaries
+        Peaks = Peaks(PeakLocs_Indices);
+
+        % Account for wrongly detected peaks close to the boundaries
         % Left boundary
         if length(Peaks)>=3
             if PeakLocs(1) < 0.02*nPointsPerPeriod
@@ -80,7 +92,7 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
                 end
             end
         end
-        % Right Boundary
+        % Right boundary
         if length(Peaks)>=3
             if (nPointsPerSegment-PeakLocs(end)) < 0.02*nPointsPerPeriod
                 if (Peaks(end)>0 && (Peaks(end-2)-Peaks(end))/abs(Peaks(end-2))>0.05) || (Peaks(end)<0 && (Peaks(end)-Peaks(end-2))/abs(Peaks(end-2))>0.05)
@@ -89,39 +101,45 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
                 end
             end
         end
-        %% Check if the amount of of TurningPoints (local extrema) stays at least up to 1
+
+        % Check if the amount of of TurningPoints (local extrema) stays at least up to 1
         if isempty(Peaks)
             Theta(:,iSeg) = NaN(nPointsPerSegment,1);
             continue
         end
-        %% Account for extrema lying directly on the boundary which where not detected as peak
-        % Left Boundary
+
+        % Account for extrema lying directly on the boundary which where not detected as peak
+        % Left boundary
         if (Peaks(1)<0 && Y(1)>Peaks(2)) || (Peaks(1)>0 && Y(1)<Peaks(2))
             PeakLocs = [1;PeakLocs];
             Peaks = [Y(1);Peaks];
         end
-        % Right Boundary
+        % Right boundary
         if (Peaks(end)<0 && Y(end)>Peaks(end-1)) || (Peaks(end)>0 && Y(end)<Peaks(end-1))
             PeakLocs = [PeakLocs;nPointsPerSegment];
             Peaks = [Peaks;Y(end)];
-        end        
-        %% Account for false detected peaks, which are next to a Boundary
-        % Left Boundary
+        end
+
+        % Account for false detected peaks, which are next to a Boundary
+        % Left boundary
         if (Peaks(1)<0 && Y(1)<Peaks(1)) || (Peaks(1)>0 && Y(1)>Peaks(1))
             PeakLocs(1) = 1;
             Peaks(1) = Y(1);
         end
-        % Right Boundary
+        % Right boundary
         if (Peaks(end)<0 && Y(end)<Peaks(end)) || (Peaks(end)>0 && Y(end)>Peaks(end))
             PeakLocs(end) = nPointsPerSegment;
             Peaks(end) = Y(end);
         end
-        %% Loop over all visible Flanks
+
+        %% Loop over all visible flanks and calculate the associated phases
         nTurningPoints = length(PeakLocs);
         PeakDiffs = -diff(Peaks); % minus is necessary due to the way is calculating the difference
         PhaseSignOfFirstFlank = sign(PeakDiffs(1))*PiezoSign;
         for iFlank = [0:nTurningPoints]
+            % Get the signof the current flank
             PhaseSignOfFlank = PhaseSignOfFirstFlank * (-1)^(iFlank);
+
             % Get the Information about the ranges of the flank in x and y
             if iFlank == 0
                 IntervalX = 1:PeakLocs(1);
@@ -136,21 +154,25 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
                 IntervalYRange = abs(PeakDiffs(iFlank));
                 MaxValue = max(Peaks(iFlank),Peaks(iFlank+1));
             end
-            %Normalize flank to the interval [-1,-1] (necessary for the arcsin)
+
+            % Normalize flank to the interval [-1,-1] (necessary for the arcsin)
             IntervalY = Y(IntervalX);
             IntervalYNormed = 2*(IntervalY-MaxValue)/IntervalYRange + 1;
+
             % Do correction to handle Problems with the maschine precision of matlab
             [~,iMax] = max(IntervalYNormed);
             IntervalYNormed(iMax) = IntervalYNormed(iMax) - 2*eps;
             [~,iMin] = min(IntervalYNormed);
             IntervalYNormed(iMin) = IntervalYNormed(iMin) + 2*eps;
+
             % Calculate the relative phase in the flank
             if PhaseSignOfFlank == 1
                 Theta(IntervalX,iSeg) = asin(IntervalYNormed); % increasing flank with a relative phase between [-pi/2,pi/2] 
             else
                 Theta(IntervalX,iSeg) = pi - asin(IntervalYNormed); % decreasing flank with a relative phase between [pi/2,3*pi/2]
             end
-            % add a phaseshift to Theta, dependent on the moving direction of the Piezo (positive) and the type of the first flank
+
+            % Add a phaseshift to Theta, dependent on the moving direction of the piezo (positive) and the type of the first flank
             if PiezoSign == 1 % Piezo is increasing the pathlength to detector, Theta increases
                 if PhaseSignOfFirstFlank == 1
                     Theta(IntervalX,iSeg) = Theta(IntervalX,iSeg) + 2*pi*floor(iFlank/2); % Segment starts with a positive flank
@@ -165,15 +187,15 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computePhase(Xa,Xb, PiezoSign, Op
                 end
             end
         end
-        %% Check if all calculated Phases are realvalued
+
+        % Check if all calculated phases are realvalued
         if ~isreal(Theta(:,iSeg))
             Theta(:,iSeg) = NaN(nPointsPerSegment,1);
         end
     end
-    %% Calculate the relative Phase (since e^(ix) = e^(ix+2*pi))
+
+    %% Calculate the relative phase (since e^(ix) = e^(ix+2*pi))
     Theta_Absolute = Theta;
     Theta = mod(Theta,2*pi);
-
-
 end
 

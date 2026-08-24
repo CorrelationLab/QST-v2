@@ -24,10 +24,10 @@ function varargout = error_propagation( varargin )
 if nargin == 0 %running examples
     disp( 'simple example using an in-line function, where the standard textbook linearization method fails' )
     disp( '[avg, std_dev, skew, kurtosis] = error_propagation( @(x, y) cos(x+y), 0, 0, .1 .2, ''hist'')' );
-    [avg, std_dev, skew, kurtosis] = error_propagation( @(x, y) cos(x+y), 0, 0, .1, .2, 'hist');    
+    [avg, std_dev, skew, kurtosis] = QST.Helper.error_propagation( @(x, y) cos(x+y), 0, 0, .1, .2, 'hist');    
     disp( 'another example where using differentials you would have to go to fourth order' )
     disp( '[avg, std_dev, skew, kurtosis] = error_propagation(  @(x) x.^4, 0, .1, ''hist'')' );
-    [avg, std_dev, skew, kurtosis] = error_propagation( @(x) x.^4, 0, .1, 'hist');    
+    [avg, std_dev, skew, kurtosis] = QST.Helper.error_propagation( @(x) x.^4, 0, .1, 'hist');    
     disp( 'In order for the next exmple to run, define func = @(x) x.^4 in the command window' );
     disp( 'and try' );
     disp( 'error_propagation(  func, 0, .1, ''hist'')' );

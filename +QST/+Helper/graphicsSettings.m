@@ -19,7 +19,7 @@ c = struct2cell(p.Results);
     grid;
     dcmObj = datacursormode;  % Turn on data cursors and return the
                           %   data cursor mode object
-    set(dcmObj, 'UpdateFcn', @dataTipUpdateFcn); % increases the displayed digits of data tips 
+    set(dcmObj, 'UpdateFcn', @QST.Helper.dataTipUpdateFcn); % increases the displayed digits of data tips 
   
     %change exponent of axis
 %     y = ax.YAxis;
