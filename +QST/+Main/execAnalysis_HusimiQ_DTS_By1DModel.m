@@ -112,14 +112,14 @@ end
     % derive nRatio, g2 and the quantum coherence from both photon numbers using the dispplaced thermal state model
     nRatio = nCoherent/nTherm;
     G2 = 2 - (nCoherent/(nCoherent+nTherm))^2;
-    Coherence = QST.Simulation.QuantumCoherence.coherencePDTS(nCoherent,nTherm);
+    Coherence = QST.Simulation.QuantumCoherence.computeQuantumCoherenceDTS(nCoherent,nTherm);
 
     % Estimate the standard uncertainties for nTherm and nCoherent from the gof
     StandardErrors = QST.Helper.getStandardErrorsFromFit(Params,gof,'method1');
     nThermErr = StandardErrors(1);
     nCoherentErr = StandardErrors(2);
     % Estimate the uncertainties for the quantum coherence using error propagation
-    [~, CoherenceErr,~, ~] = QST.Helper.error_propagation( @(nCoherent,nTherm) QST.Simulation.QuantumCoherence.coherencePDTS(nCoherent,nTherm),...
+    [~, CoherenceErr,~, ~] = QST.Helper.error_propagation( @(nCoherent,nTherm) QST.Simulation.QuantumCoherence.computeQuantumCoherenceDTS(nCoherent,nTherm),...
                                                           nCoherent, ...
                                                           nTherm, ...
                                                           nCoherentErr, ...

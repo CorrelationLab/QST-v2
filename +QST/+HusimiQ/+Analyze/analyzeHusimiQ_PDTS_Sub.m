@@ -58,7 +58,7 @@ backgroundOffset = Params.c;
 % derive nRatio, g2 and the quantum coherence from it
 nRatio = nCoherent/nTherm;
 G2 = 2 - (nCoherent/(nCoherent+nTherm))^2;
-Coherence = QST.Simulation.QuantumCoherence.coherencePDTS(nCoherent,nTherm);
+Coherence = QST.Simulation.QuantumCoherence.computeQuantumCoherenceDTS(nCoherent,nTherm);
 
 
 % calculate the uncertainties in case not monte carlo is used
@@ -66,7 +66,7 @@ if Options.MonteCarloError==false
     StandardErrors = QST.Helper.getStandardErrorsFromFit(Params,gof,'method1');
     nThermErr = StandardErrors(1);
     nCoherentErr = StandardErrors(2);
-    [~, CoherenceErr,~, ~] = QST.Helper.error_propagation( @(nCoherent,nTherm) QST.Simulation.QuantumCoherence.coherencePDTS(nCoherent,nTherm),...
+    [~, CoherenceErr,~, ~] = QST.Helper.error_propagation( @(nCoherent,nTherm) QST.Simulation.QuantumCoherence.computeQuantumCoherenceDTS(nCoherent,nTherm),...
                                                           nCoherent, ...
                                                           nTherm, ...
                                                           nCoherentErr, ...
