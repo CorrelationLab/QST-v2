@@ -61,9 +61,9 @@ function [] = createTimeResolvedHusimiMovie_By1DModel(Options)
     % calculate the Times and Edge Indices directly in the function to ensure that the edgeindices work together with the rest of the code
     % (Yannik: Iam not completely sure if this is indeed necessary but the function crashes right now without. Iam not yet sure why it seemed to in 2D case)
     if Options.UseMovingAverage == true
-        [~,~, Times1, X1_EdgeIndices] = QST.N_G2.calcTimeResolved_N_G2(Options.X1,AverageMethod='moving',AverageSize=Options.nQuadratures,StepSize=Options.nStepSize);
+        [~,~, Times1, X1_EdgeIndices] = QST.N_G2.computeTimeResolved_N_G2(Options.X1,AverageMethod='moving',AverageSize=Options.nQuadratures,StepSize=Options.nStepSize);
     else
-        [~,~, Times1, X1_EdgeIndices] = QST.N_G2.calcTimeResolved_N_G2(Options.X1,AverageMethod='static',AverageSize=Options.nQuadratures);
+        [~,~, Times1, X1_EdgeIndices] = QST.N_G2.computeTimeResolved_N_G2(Options.X1,AverageMethod='static',AverageSize=Options.nQuadratures);
     end
 
 

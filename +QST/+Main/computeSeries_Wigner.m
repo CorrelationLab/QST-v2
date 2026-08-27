@@ -27,9 +27,7 @@ for j = 1:length(Paths)
     %calculate wigner
     WF = QST.Wigner.WignerFromRho(Rho,Dir_WignerTable);
     % analyse wigner
-    [Qwidth,Pwidth,Qcenter,Pcenter] = QST.Wigner.Fit2DGaussian(WF,Q_Def,false);
-    nThermal = (Qwidth^2)-0.5;
-    nCoherent = 0.5*(Qcenter^2+Pcenter^2);
+    [nThermal, nCoherent] = QST.Wigner.fitDTS(WF,Q_Def,false);
     
 
     % save the results

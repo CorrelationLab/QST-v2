@@ -27,7 +27,7 @@ for j = 1:length(MatPaths)
         Q = load(f, strcat(Options.QuadratureDefiner,string(i)));
         Q = Q.(strcat(Options.QuadratureDefiner,string(i)));
         %% 2. Calculate N and G2
-        [N, G2, Times,EdgeIndices] = QST.N_G2.calcTimeResolved_N_G2(Q, AverageMethod=Options.Averagemethod,AverageSize=Options.AverageSize, StepSize=Options.StepSize,Samplerate=Options.Samplerate);
+        [N, G2, Times,EdgeIndices] = QST.N_G2.computeTimeResolved_N_G2(Q, AverageMethod=Options.Averagemethod,AverageSize=Options.AverageSize, StepSize=Options.StepSize,Samplerate=Options.Samplerate);
 
         %% 3. Plot N and G2 in two seperate plots
         Fig(1) = figure;
