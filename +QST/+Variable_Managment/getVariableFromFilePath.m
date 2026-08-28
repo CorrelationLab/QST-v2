@@ -1,14 +1,37 @@
-function [Variable] = getVariableFromFilePath(FilePath,VariableString)
-    % Function that loads a variable from a given matfile based on the variablename as string. If 'VariableString' is an array it is used as a 
-    % preference list (First check for variable A, if it does not exist check for variable B...)
+function [Variable] = getVariableFromFilePath(FilePath, VariableString)
+%% Description:
+%   This function reads in a file path to a .mat file and loads a specific given by VariableString. If this function is applied in a series and the
+%   variable name may change between iterations (an example would for e.g. a search for g2 inside the condensate state which can be saved either in a 
+%   variable ending to _high if the separation function was applied or without if the function was not applied or the system was constant inside the condensate state).
+%   In this case one can insert a priority listof decsending order of variable names which then returns the first found variable. 
+%   The function can also extract fields from a struct. In its current form this function cannot return all fields of a struct array at once but has to be called in a loop.
+%
+%% Syntax:
+%   [Variable] = getVariableFromFilePath(FilePath, VariableString)
+%
+%% Input:
+% required input values;
+%   FilePath                                        - absolute file path to the .mat file
+%   VariableString                                  - string or array of strings containing the variable that should be extracted from the matfile.
+%                                                     In case of an array this acts as a priority list and the function returns the first variable found
+%   
+%
+%% Output:
+%   Variable                                        - first fitting variable found in the .mat file
+
+
+
     arguments
         FilePath;
         VariableString;
     end
-    Variable = [];
 
+
+    Variable = [];
+    %% 1. Iterate through the array of variables
     for i = 1:length(VariableString)
-        % 1. Try to load the variable
+
+        %% 2. Try to load the main variable
         try
             VariableString_Components = split(VariableString(i),'.');
             Variable = load(FilePath,VariableString_Components{1});
@@ -17,7 +40,7 @@ function [Variable] = getVariableFromFilePath(FilePath,VariableString)
             warning("Variable" + VariableString_Components{1} + " not found");
         end
 
-        % 2. in case the variable is field of a struct search for this
+        %% 3. Try to load the exact variable field in case a struct is given
         try
             if length(VariableString_Components) > 1   
                 X = VariableString_Components(2:end);
@@ -27,15 +50,16 @@ function [Variable] = getVariableFromFilePath(FilePath,VariableString)
             warning("Searched component" + join(VariableString_Components(2:end),'.') + "not found in struct " + VariableString_Components(1));
             Variable = [];
         end
-        % if the variable is found break the loop and return the found variable
+
+        %% 4. return the found variable
         if ~isempty(Variable)
             break
         end
     end
-    % give a warning if nothings was found at all
+
+    %% 5. Return a warning if no variable could be found
     if isempty(Variable)
         warning("No searched variable found");
     end
-
 end
 
