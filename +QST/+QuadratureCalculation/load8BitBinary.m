@@ -1,129 +1,146 @@
-function [ Data8bit, Config, Timestamps ] = load8BitBinary(Directory, Filename,Options)
-%LOAD8BITBINARY Loads 8bit binary datafiles, the configuration file and the
-%timestamp file for a single multiple recording measurement with a Spectrum
-%data acquisition card.
+function [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename, StarHub, Options)
+%% Description:
+%   This function loads 8-bit binary data recorded with a Spectrum data acquisition card, its configuration file,
+%   and optionally its timestamp file.
 %
-%   DATA8BIT = LOAD8BITBINARY(Filename) Depending on the number of
-%   channels, DATA8BIT is a 2D- or 3D- array with dimensions [columns,
-%   rows, channels] that contains a single measured segment of one channel
-%   in a column. To extract the number of channels, a configuration file
-%   Filename.cfg is necessary. The file 'Filename' has to be located in the
-%   folder 'raw-data'.
+%   It supports both a standard single-ADC-card setup and a multi-ADC-card StarHub setup. For StarHub measurements,
+%   the channels are reordered to match the channel order specified in the configuration file.
 %
-%   [DATA8BIT, CONFIG, TIMESTAMPS] = LOAD8BITBINARY(Filename) Additionally
-%   to the previously discussed array DATA8BIT, the structure CONFIG
-%   consists of the configuration data and TIMESTAMPS is a 1D-array
-%   containing the timestamps of the trigger events. 
-
-arguments
-    Directory;
-    Filename;
-    Options.SaveData = false;
-    Options.UseLegacySyntax = false;
-end
-
-
-% 1. create the paths to the raw the config and the timestamp file
-Filepath_Raw = fullfile(Directory, strcat([Filename, '.raw']));
-if Options.UseLegacySyntax
-    Filepath_Config = fullfile(Directory, strcat([Filename, '.raw.cfg']));
-    Filepath_Timestamp = fullfile(Directory, strcat([Filename, '.raw.stamp']));
-else
-    Filepath_Config = fullfile(Directory, strcat([Filename, '.cfg']));
-    Filepath_Timestamp = fullfile(Directory, strcat([Filename, '.stamp']));
-end
-
-% 2. check that all files exists (timestamps are optional)
-assert(exist(Filepath_Raw,'file')==2,['There is no *raw-file with filename', Filename, '!' ]);
-assert(exist(Filepath_Config,'file')==2,['There is no *.cfg-file with filename', Filename, '!']);
-if exist(Filepath_Timestamp,'file')==2
-    TimestampsExists = true;
-else
-    disp('Warning: No timestamps file detected!');
-    TimestampsExists = false;
-end
-
-% 3. generate the config struct from the config file
-Config = QST.QuadratureCalculation.getConfig(Filepath_Config);
+%% Syntax:
+%   Data8bit = load8BitBinary(Directory, Filename)
+%   [Data8bit, Config] = load8BitBinary(Directory, Filename)
+%   [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename)
+%   [...] = load8BitBinary(Directory, Filename, StarHub)
+%   [...] = load8BitBinary(Directory, Filename, StarHub, SaveData=true)
+%
+%% Input:
+% required input values:
+%   Directory                                       - folder containing the measurement files
+%   Filename                                        - filename without the .raw extension
+%
+% optional input values:
+%   StarHub                                         - false for a single ADC card (default); true for a multi-ADC
+%                                                     StarHub setup
+%
+% name-value input options:
+%   SaveData                                        - save Data8bit as 'Data8bit.mat' (default: false)
+%
+%% Output:
+%   Data8bit                                        - int8 measurement data
+%   Config                                          - configuration structure
+%   Timestamps                                      - uint64 trigger timestamps, or [] if unavailable
 
 
 
-% 4. generate the 8bit data from the raw-file
-% 4.1 get the necessary infos from the config files
-% 4.1.1 Channelnumber
-Channelnumber = Config.SpectrumCard.Channel00.Enable_BOOL + ...
-                Config.SpectrumCard.Channel01.Enable_BOOL + ...
-                Config.SpectrumCard.Channel02.Enable_BOOL + ...
-                Config.SpectrumCard.Channel03.Enable_BOOL;
-% 4.1.2 Segmentsize
-Segmentsize = Config.SpectrumCard.ModeSetup.Segmentsize_I32;
-
-% 4.1.3 Memsize; The field could be called "Memory_I32" or "Memory_DBL"
-if isfield(Config.SpectrumCard.ModeSetup,'Memory_I32')
-    Memsize = Config.SpectrumCard.ModeSetup.Memory_I32;
-else
-    Memsize = round(Config.SpectrumCard.ModeSetup.Memory_DBL);
-end
-% 4.1.4 Number of recordings
-NumberOfRecordings = Memsize/Segmentsize;
-
-
-% 4.2 generate the 8 bit data
-
-% 4.2.1 read in data
-DatafileID = fopen(Filepath_Raw);
-Data = fread(DatafileID,[Segmentsize*Channelnumber, NumberOfRecordings], 'int8=>int8');
-% 4.2.2 distribute the recorded data into the different channels
-if Channelnumber>1
-    Data8bit = zeros(Segmentsize, NumberOfRecordings, Channelnumber,'int8');
-    for iBlock = 1:NumberOfRecordings
-        for iChannel = 1:Channelnumber
-            Data8bit(:,iBlock,iChannel) = Data(iChannel:Channelnumber:Segmentsize*Channelnumber, iBlock);
+    arguments
+        Directory
+        Filename
+        StarHub (1,1) logical = false
+        Options.SaveData (1,1) logical = false
+    end
+    
+    
+    
+    %% 1. File paths and configuration
+    Filepath_Raw = fullfile(Directory, strcat(Filename, '.raw'));
+    Filepath_Config = fullfile(Directory, strcat(Filename, '.cfg'));
+    Filepath_Timestamp = fullfile(Directory, strcat(Filename, '.stamp'));
+    
+    assert(exist(Filepath_Raw, 'file') == 2, ['There is no .raw file with filename ', Filename, '!']);
+    assert(exist(Filepath_Config, 'file') == 2, ['There is no .cfg file with filename ', Filename, '!']);
+    
+    Config = QST.QuadratureCalculation.getConfig(Filepath_Config);
+    Segmentsize = Config.SpectrumCard.ModeSetup.Segmentsize_I32;
+    
+    if isfield(Config.SpectrumCard.ModeSetup, 'Memory_I32')
+        Memsize = Config.SpectrumCard.ModeSetup.Memory_I32;
+    else
+        Memsize = round(Config.SpectrumCard.ModeSetup.Memory_DBL);
+    end
+    
+    assert(mod(Memsize, Segmentsize) == 0, 'Memory size must be an integer multiple of the segment size.');
+    NumberOfRecordings = Memsize / Segmentsize;
+    
+    %% 2. Get active-channel information
+    if StarHub
+        ChannelNames = "Channel0" + (1:4);
+    else
+        ChannelNames = "Channel0" + (0:3);
+    end
+    
+    ChannelInfo = Config.SpectrumCard.(ChannelNames(1));
+    
+    for iChannel = 2:numel(ChannelNames)
+        ChannelInfo(iChannel) = Config.SpectrumCard.(ChannelNames(iChannel));
+    end
+    
+    ChannelInfo = ChannelInfo([ChannelInfo.Enable_BOOL]);
+    Channelnumber = numel(ChannelInfo);
+    
+    assert(Channelnumber > 0, 'No active channels found in the configuration.');
+    
+    %% 3. Read raw data
+    DatafileID = fopen(Filepath_Raw, 'r');
+    assert(DatafileID ~= -1, 'Could not open raw data file.');
+    
+    if StarHub
+        CardIDs = [ChannelInfo.ADC_CardID_I32];
+        InputIDs = [ChannelInfo.ADC_InputID_I32];
+        ChannelsPerCard = arrayfun(@(iCard) sum(CardIDs == iCard), 0:max(CardIDs));
+    else
+        ChannelsPerCard = Channelnumber;
+    end
+    
+    Data8bit = zeros(Segmentsize, NumberOfRecordings, Channelnumber, 'int8');
+    StartChannel = 1;
+    
+    for iBlock = 1:numel(ChannelsPerCard)
+        NumberOfChannels = ChannelsPerCard(iBlock);
+    
+        if NumberOfChannels == 0
+            continue;
         end
+    
+        Data = fread(DatafileID, [Segmentsize * NumberOfChannels, NumberOfRecordings], 'int8=>int8');
+    
+        assert(numel(Data) == Segmentsize * NumberOfChannels * NumberOfRecordings, ...
+            'Raw data file ended unexpectedly.');
+    
+        EndChannel = StartChannel + NumberOfChannels - 1;
+        Data8bit(:, :, StartChannel:EndChannel) = ...
+            permute(reshape(Data, NumberOfChannels, Segmentsize, NumberOfRecordings), [2, 3, 1]);
+    
+        StartChannel = EndChannel + 1;
     end
-else
-    Data8bit = Data; % one has to check if this works, since the code afterwards is based on 3d arrays
-end
-% faster method to sort the data using reshape
-% Data8Bit = permute(reshape(Data,Channelnumber,Segmentsize,NumberOfRecordings),[2,3,1]); 
-
-
-
-% 4.2.3 close the file again
-fclose(DatafileID);
-
-
-
-% 4.3 if timestamps exists also get them
-if TimestampsExists
-    % 4.3.1 open the timestamp file and get the raw data
-    Timestamps = zeros([NumberOfRecordings, 1], 'uint64');
-    TimestampsfileID = fopen(Filepath_Timestamp);
-    TimestampsRaw = fread(TimestampsfileID,[2*NumberOfRecordings, 1],'uint64=>uint64');
-    % 4.3.2 remove the empty values (every second value is empty)
-    for i = 1:length(Timestamps)
-        Timestamps(i) = TimestampsRaw((i-1)*2+1);
+    fclose(DatafileID);
+    
+    % Convert StarHub data from physical card/input order to configuration channel order.
+    if StarHub
+        [~, ChannelOrder] = sort(CardIDs * 4 + InputIDs);
+        Data8bit = Data8bit(:, :, ChannelOrder);
     end
-    fclose(TimestampsfileID);
+    
+    % Preserve the original two-dimensional output for a single non-StarHub channel.
+    if ~StarHub && Channelnumber == 1
+        Data8bit = Data8bit(:, :, 1);
+    end
+    
+    %% 4. Read timestamps
+    Timestamps = [];
+    
+    if exist(Filepath_Timestamp, 'file') == 2
+        TimestampsfileID = fopen(Filepath_Timestamp, 'r');
+        assert(TimestampsfileID ~= -1, 'Could not open timestamp file.');
+    
+        TimestampsRaw = fread(TimestampsfileID, [2 * NumberOfRecordings, 1], 'uint64=>uint64');
+        fclose(TimestampsfileID);
+        Timestamps = TimestampsRaw(1:2:end);
+    else
+        warning('No timestamps file detected.');
+    end
+    
+    %% 5. Save data
+    if Options.SaveData
+        save('Data8bit.mat', '-v7.3', 'Data8bit');
+    end
 end
-
-
-
-% 5. save the data as 8bit 3D-array
-if Options.SaveData
-    save('Data8bit.mat','-v7.3','Data8bit');
-end
-
-
-
-end
-% READ TIMESTAMPS
-% 1. When using VI dwTimestampsRead_64.vi (64bit) in LabView and big-endian ordering:
-% fseek(timestampsfileID,4,'bof');
-% timestamps = fread(timestampsfileID,[2*memsize/segmentsize 1],'uint64=>uint64',0,'s');
-% 2. For Debugging:
-% timestamps_raw = fread(timestampsfileID,[16 2*memsize/segmentsize],'uint8=>uint8');
-% 3. When using VI dwTimestampsRead.vi (32bit) in LabView and big-endian ordering:
-% timestamps_raw = fread(timestampsfileID,[2*memsize/segmentsize 1],'uint64=>uint64',0,'s');
-% timestamps_raw(1) = mod(timestamps_raw(1),2^24); %Removing filesize bytes in the first timestamp when using 32bit timestamp reading operation in LabView
-

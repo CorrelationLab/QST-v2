@@ -1,134 +1,170 @@
-function [ X ] = computeQuadratures( data8bit, channels,config, amperePerVolt, varargin )
-%COMPUTEQUADRATURES Compute quadrature values in number of photons
+function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO, FilenameSIG, Channels, OffsetType, ModulatedPhase, RemoveDetectorResponse, IntegrationDutyCycle, nMean_Min, Delta, Options)
+%% Description:
+%   This function reads in a main directory of a series of measurements and computes the quadratures out of each measurement.
+%   To this end each measurement has to consist six files (1 vacuum measurement for calibration, 1 measurement with signal, each measurement saves 3 
+%   files, a .cfg config file, a timestamp .stamp file and a .raw binary data file). The file tree should have the following structure:
+%   -Directory
+%       -LOonly.cfg
+%       -LOonly.stamp
+%       -LOonly.raw
+%       -LOwithSIG.cfg
+%       -LOwithSIG.stamp
+%       -LOwithSIG.raw
+% 
+%   The final quadratures are then saved in a .mat file that is saved in an extra sub directory 'mat-data' which is placed on the same level as 'raw-data'
+% 
+%% Syntax:
+%   execSeriesQuadratureCalculation(Directory, Channels, Offset, ModulatedPhase, RemoveDetectorResponse, Options)
 %
-% CALIBRATION is given in A/V
+%% Input:
+% required input values;
+%   Directory                                   - raw-data directory of a single measurement
+%   FilenameLO                                  - filename token of the vacuum measurement
+%   FilenameLO                                  - filename token of the signal measurement
+%   Channels                                    - array of the detection channels of the homodyne setup that were active in the measurement 
+%   Offset                                      - array of options to indicate wether the offset correction should be applied using a global or a local varying offset.
+%                                                 An example would be "Offset = ["Global", "Global", "Global", "Global"]" or "Offset = ["Local", "Local", "Local", "Local"]"
+%   ModulatedPhase                              - array of options to indicate wether the relative phase between local oscillator and signal was actively modulated or not 
+%                                                 An example would be "ModulatedPhase = [true, true, true, true]" or "ModulatedPhase = [false, false, false, false]"
+%   RemoveDetectorResponse                      - array of options to indicate wether the detector response of the balanced detectors should be removed.
+%                                                 This is only possible when the relative phase between local oscillator and signal is not only random but that
+%                                                 the phase information decays within the time between two consecutive pulses such that the quadratures of consecutive pulses
+%                                                 theoretically should be uncorrelated
+%
+% optional input values;                        
+%   Options.Token_LOOnly = "LOOnly"             - indication token for the vacuum measurement files
+%   Options.Token_LOAndSignal = "LOwithSIG"     - indication token for the signal measurement files            
+%   Options.StarHub = true                      - check if the Spectrum instruments ADC card uses the Starhub module 
+%   Options.Preset = ''                         - activate predefined preset to shorten the function call. Use 'FixedPhase' when the phase relation between
+%                                                 local oscillator and signal was intrinsically stabel and modulated by a piezo (LO acts as source of the signal).
+%                                               - Use RandomPhase when the phase relation was random and consecutive quadratures should be uncorrelated
+%                                                 (polariton condensate emission)
+%   Options.IntegrationDutyCycle = 1/3          - width of the integration window used to convert the digitalized values from the adc card via integration to a quadrature value.
+%                                                 The integration window size is given in relation to the time interval between two pulses. 
+%                                                 If this time is for e.g. equivalent to 33 voltage values the integration interval includes 11 points 
+%                                                 centered around the pulse maximum
+%   Options.nMean_Min = 1000000                 - number of consective quadratures used to compute the detector response
+%   Options.Delta = 50                          - order up to which correlations between consecutive quadratures should be removed
+%   
+%% Output:
+%   X1                                            - constructed quadratures of channel 1
+%   X2                                            - constructed quadratures of channel 2
+%   X3                                            - constructed quadratures of channel 3
+%   X4                                            - constructed quadratures of channel 4
+%   PiezoInfos                                    - struct that contains information about the piezo movement reconstructed from the timestamp data
 
-%% Validate and parse input arguments
-p = inputParser;
-defaultLocations = [];
-addParameter(p,'Locations',defaultLocations,@isvector);
-defaultLocationOffset = 0;
-addParameter(p,'LocationOffset',defaultLocationOffset,@isnumeric);
-defaultIntegrationWindow = 0;
-addParameter(p,'IntegrationWindow',defaultIntegrationWindow,@isnumeric);
-if config.SpectrumCard.Clock.SamplingRate_MHz__DBL == 5000
-    defaultMinPeakDistance = 40; % intended for 5GS/s
-elseif config.SpectrumCard.Clock.SamplingRate_MHz__DBL == 2500
-    defaultMinPeakDistance = 20; % intended for 2.5GS/s
-else
-    defaultMinPeakDistance = 10; % intended for 1.25GS/s
-end
-addParameter(p,'MinPeakDistance',defaultMinPeakDistance,@isnumeric);
-defaultRepetitionRate = 75.4e6; % Mira repetition rate
-addParameter(p,'RepetitionRate',defaultRepetitionRate,@isnumeric);
-defaultShowIntegration = false;
-addParameter(p,'ShowIntegration',defaultShowIntegration,@islogical);
-defaultDutyCycle = 1/3; % Integration duty cycle
-addParameter(p,'DutyCycle',defaultDutyCycle,@isnumeric);
-parse(p,varargin{:});
-c = struct2cell(p.Results);
-[dutycycle,integrationWindow,locationOffset,locs,minPeakDistance, ...
-    reprate,showIntegration] = c{:};
-
-SAMPLERATE = config.SpectrumCard.Clock.SamplingRate_MHz__DBL * 1e6;
-ELEMENTARY_CHARGE = 1.6021766208e-19;
-
-INT8_TO_VOLTAGE = zeros(length(channels),1);
 
 
-for iCh = 1:length(channels)
-    Range = config.SpectrumCard.(char("Channel0"+string(channels(iCh)))).Range_I32;
-    switch Range % switched here from 00 to 01, since Channel IDs start now at 1 (and not as 0 as before)
-        case 0
-            INT8_TO_VOLTAGE(iCh) = 0.200/128;
-        case 1
-            INT8_TO_VOLTAGE(iCh) = 0.500/128;
-        case 2
-            INT8_TO_VOLTAGE(iCh) = 1.0/128;
-        case 3
-            INT8_TO_VOLTAGE(iCh) = 2.5/128;
+    arguments
+        Directory;
+        FilenameLO;
+        FilenameSIG;
+        Channels;
+        OffsetType = ["Global", "Global", "Global", "Global"]; % this has to be strings!!!
+        ModulatedPhase = [true,true,true,true];
+        RemoveDetectorResponse = [false,false,false,false];
+        IntegrationDutyCycle = 1/3;
+        nMean_Min = 10000000;
+        Delta = 50;
+        Options.StarHub = true;
+        Options.SaveData
     end
-end
-
-%% Loop over all channels and compute quadratures
-[nRows, nColumns, nChannels] = size(data8bit);
-
-for iCh = 1:nChannels
-    % Identify integration centers and add offset if necessary
-    if isempty(locs)
-        [locs,~] = QST.QuadratureCalculation.getPointwiseVariance(data8bit(:,:,iCh), ...
-            'MinPeakDistance',minPeakDistance);
-    end
-    locs = locs + locationOffset;
     
-    % Check for significant errors in the number of detected pulses
-    samplesPerPulse = SAMPLERATE/reprate;
-    if ~(abs(nRows/samplesPerPulse-length(locs))<3)
-        warning([num2str(length(locs)), ...
-        ' integration centers detected. But ', ...
-        num2str(nRows/samplesPerPulse),' were expected!']);
-    end
-
-    % Eliminate locations whose corresponding window would be outside the range
-    % of DATA (allowed are even windows that go exactly to the edge boundary).
-    if integrationWindow == 0
-        window = round(dutycycle * mean(diff(locs)));
-    else
-        window = integrationWindow;
-    end
-    if (locs(1)<=ceil(window/2))
-        locs = locs(2:end);
-    end
-    if ((nRows-locs(end))<ceil(window/2))
-        locs = locs(1:length(locs)-1);
-    end
-
-    %% Account for small timing errors between channels
-    if iCh == 1
-        commonLocs = locs;
-        X = zeros(length(locs), nColumns, nChannels);
-    elseif length(commonLocs) > length(locs)
-        if abs(commonLocs(1)-locs(1))>abs(commonLocs(end)-locs(end))
-            % First entry in commonLocs needs to be deleted
-            X = X(2:end,:,:);
+    
+    %% 1. set Constants
+    NORM = 1/sqrt(2);
+    
+    %% 2. load Data
+    % 2.1 load LO only
+    QST.Helper.dispstat('Load LO data','timestamp','keepthis',0);
+    [Data8bitLO,ConfigLO,~]= QST.QuadratureCalculation.load8BitBinary(Directory, FilenameLO, StarHub=Options.StarHub, SaveData=Options.SaveData);
+    % 2.2 load LO + Signal
+    QST.Helper.dispstat('Load LO + Signal data','timestamp','keepthis',0);
+    [Data8bitSIG,ConfigSIG,TimestampSIG]= QST.QuadratureCalculation.load8BitBinary(Directory, FilenameSIG, StarHub=Options.StarHub, SaveData=Options.SaveData);
+    
+    %% 3. compute Number of LO Photons
+    QST.Helper.dispstat('Compute laser amplification','timestamp','keepthis',0);
+    Alpha = zeros(length(Channels),1); %The Magnification created by the LO % This is better replaced by a dictionary (new since Matlab 2022b)
+    
+    %3.1 calculate the not regulized quadratures for the LO
+    XLO = QST.QuadratureCalculation.integratePulses(Data8bitLO(:,:,Channels), Channels, ConfigLO, DutyCycle=IntegrationDutyCycle);
+    nChannels = length(Channels);
+    for iCh = 1:nChannels
+        Data = XLO(:,:,iCh);
+        % 3.2 remove the Offsets
+        Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(Channels(iCh)));
+        % 3.3 remove the detectorresponse
+        if RemoveDetectorResponse(Channels(iCh))
+            DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
         else
-            % Last entry in commonLocs needs to be deleted
-            X = X(1:end-1,:,:);
+            DataCleaned = Data;
         end
-        commonLocs = locs;
-    elseif length(commonLocs) < length(locs)
-        if abs(commonLocs(1)-locs(1))>abs(commonLocs(end)-locs(end))
-            % First entry in locs needs to be deleted
-            locs = locs(2:end);
+        % 3.4 calculate the regularisation based on the LO's distribution width
+        ChannelID = sprintf('Channel%02d', iCh);
+        Voltage_SIG = RangeToVoltage(ConfigLO.SpectrumCard.(ChannelID).Range_I32+1);
+        Voltage_LO = RangeToVoltage(ConfigSIG.SpectrumCard.(ChannelID).Range_I32+1);
+        Alpha(iCh) = (1/NORM)*std(DataCleaned(:))*(Voltage_SIG/Voltage_LO);
+    end
+    
+    %% 4. compute quadratures of the signal and calibrate the results with the LO amplification
+    % 4.1 calculate the Quadratures
+    QST.Helper.dispstat('compute Lo + Signal quadratures','timestamp','keepthis',0);
+    X = QST.QuadratureCalculation.integratePulses(Data8bitSIG(:,:,Channels),Channels,ConfigSIG,DutyCycle=IntegrationDutyCycle);
+    [X1, X2, X3, X4] = deal(0);
+    % 4.1 Clean the data individually for each channel
+    for iCh = 1:nChannels
+        Data = X(:,:,iCh);
+        DataShape = size(Data);
+        % 4.2 rescale the Quadratures
+        Data = Data / Alpha(iCh);
+        % 4.3 remove the offset
+        Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(Channels(iCh)));
+        % 4.4 remove the Detectorresponse
+        Data = Data(:);
+        if RemoveDetectorResponse(Channels(iCh))
+            QST.Helper.dispstat(['Remove Detectorresponse from Channel ',num2str(Channels(iCh)),'...'],'timestamp','keepthis',0);
+            Data = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
+        end
+        % 4.5 cut the data in piezos according to the observed piezo movement if piezo was active on this channel
+        if ModulatedPhase(Channels(iCh))
+            Data = reshape(Data,DataShape);% reshape Data back into the segments
+            [Data, PiezoShape, PiezoStartDirection,PiezoEdgeIndices] = QST.QuadratureCalculation.getPiezoSegments(Data,TimestampSIG,SegmentSelectionMode='MaxLength');
         else
-            % Last entry in locs needs to be deleted
-            locs = locs(1:end-1);
+            PiezoShape = [1,length(Data)];
+            PiezoStartDirection = 0;
+            PiezoEdgeIndices = [1, length(Data)];
+        end
+        %% 5 .Asign the cleaned data to the channels
+        switch Channels(iCh)
+            case 1 
+                X1 = Data;
+                PiezoInfos.X1.Shape = PiezoShape;
+                PiezoInfos.X1.StartDirection = PiezoStartDirection;
+                PiezoInfos.X1.EdgeIndices = PiezoEdgeIndices;
+            case 2
+                X2 = Data;
+                PiezoInfos.X2.Shape = PiezoShape;
+                PiezoInfos.X2.StartDirection = PiezoStartDirection;
+                PiezoInfos.X2.EdgeIndices = PiezoEdgeIndices;
+            case 3
+                X3 = Data;
+                PiezoInfos.X3.Shape = PiezoShape;
+                PiezoInfos.X3.StartDirection = PiezoStartDirection;
+                PiezoInfos.X3.EdgeIndices = PiezoEdgeIndices;
+            case 4
+                X4 = Data;
+                PiezoInfos.X4.Shape = PiezoShape;
+                PiezoInfos.X4.StartDirection = PiezoStartDirection;
+                PiezoInfos.X4.EdgeIndices = PiezoEdgeIndices;
         end
     end
-    
-    %% Integration loop
-    start = locs-ceil(window/2);
-    stop = locs+ceil(window/2);
-    windowTime = (stop-start+1) * 1 / SAMPLERATE;
-    
-    % Visualize integration windows
-    if showIntegration == true && iCh == 1
-        plot(data8bit(:,1,iCh));
-        hold on;
-        plot(start,zeros(size(start)),'*');
-        plot(stop,zeros(size(stop)),'o');
-        hold off;
-    end
-
-    nWindows = length(locs);
-    for iWindow = 1 : nWindows
-        % Integration and calibration step
-        X(iWindow, :, iCh) = sum(data8bit(start(iWindow):stop(iWindow), ...
-            :,iCh))*windowTime(iWindow);
-    end % iWindow
-    X(:,:,iCh) = X(:,:,iCh) * INT8_TO_VOLTAGE(iCh) * ...
-        amperePerVolt / ELEMENTARY_CHARGE;
-end % iCh
-
 end
+
+function INT8_TO_VOLTAGE = RangeToVoltage(Range_I32)
+    Ranges = [0.2,0.5,1,2.5]/128;
+    INT8_TO_VOLTAGE = Ranges(Range_I32);
+end
+
+
+
 

@@ -10,8 +10,7 @@ function [ NCoherent, NThermal] = fitDTSToWigner(Wigner, QAxis, Options)
 %   QAxis;                                          - axis data of the Q or P axis
 %
 % optional input values;
-%   InterpolationMethod = 'nearest'                 - used interpolation method. Must be 'nearest', 'nearest', 'linear', 'spline', or 'cubic' 
-%   InitialParameterGuess = [1,0,50,0,50]         - initial guess for the fit parameters. the parameters are: 
+%   Options.InitialParameterGuess = [1,0,50,0,50]   - initial guess for the fit parameters. the parameters are: 
 %                                                     [Amplitude, sigmax, y0, sigmay, angel(in rad)]
 %
 %% Output:
@@ -23,7 +22,6 @@ function [ NCoherent, NThermal] = fitDTSToWigner(Wigner, QAxis, Options)
     arguments
         Wigner;
         QAxis;
-        Options.InterpolationMethod {mustBeMember(Options.InterpolationMethod,{'nearest', 'nearest','linear','spline','cubic'})} = 'nearest'; % NACHPRÜFEN WIE DAS IM ORIGINAL WAR
         Options.InitialParameterGuess = [1,0,50,0,50]
     end
 
@@ -31,7 +29,7 @@ function [ NCoherent, NThermal] = fitDTSToWigner(Wigner, QAxis, Options)
 
     %% 1. Set up the Q-P grid
     [QQ,PP] = meshgrid(QAxis);
-    QPData = zeros(size(X,1),size(Y,2),2);
+    QPData = zeros(size(QQ,1),size(PP,2),2);
     QPData(:,:,1) = QQ;
     QPData(:,:,2) = PP;
 
@@ -39,7 +37,7 @@ function [ NCoherent, NThermal] = fitDTSToWigner(Wigner, QAxis, Options)
     MdataSize = size(Wigner,1); % Size of nxn data matrix
     LowerBoundary = [0,-MdataSize/2,0,-MdataSize/2,0];
     UpperBoundary = [realmax('double'),MdataSize/2,(MdataSize/2)^2,MdataSize/2,(MdataSize/2)^2];
-    [FitParameter,resnorm,residual,exitflag] = lsqcurvefit(@D2GaussFunction,QPData,Wigner,LowerBoundary,UpperBoundary);
+    [FitParameter,resnorm,residual,exitflag] = lsqcurvefit(@D2GaussFunction, Options.InitialParameterGuess, QPData, Wigner, LowerBoundary, UpperBoundary);
     Q_Center = FitParameter(2);
     Q_Sigma = FitParameter(3);
     P_Center = FitParameter(4);

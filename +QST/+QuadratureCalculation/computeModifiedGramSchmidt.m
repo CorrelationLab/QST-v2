@@ -1,4 +1,4 @@
-function [Q, R] = mgsog(X)
+function [Q, R] = computeModifiedGramSchmidt(X)
 % Modified Gram-Schmidt orthogonalization
 % Written by Mo Chen (sth4nth@gmail.com).
 [d,n] = size(X);

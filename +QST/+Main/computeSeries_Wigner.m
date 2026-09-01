@@ -25,9 +25,9 @@ for j = 1:length(Paths)
     Rho = Rho(1:76,1:76);
 
     %calculate wigner
-    WF = QST.Wigner.WignerFromRho(Rho,Dir_WignerTable);
+    WF = QST.Wigner.computeWignerFromDensityMatrix(Rho,Dir_WignerTable);
     % analyse wigner
-    [nThermal, nCoherent] = QST.Wigner.fitDTS(WF,Q_Def,false);
+    [nThermal, nCoherent] = QST.Wigner.fitDTSToWigner(WF,Q_Def,false);
     
 
     % save the results
