@@ -1,4 +1,4 @@
-function [Rho] = computeDensityMatrix( X, Theta, Options)
+function [Rho] = performDensityMatrixReconstruction( X, Theta, Options)
 %% Description:
 %   This function reads in an array of quadratures and an array of associated phases and constructs the density matrix in fock representation
 %   which is the most likely to reproduce this results. It is based on J. Opt. B: Quantum Semiclass. Opt. 6 S556

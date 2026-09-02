@@ -1,64 +1,167 @@
 function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
-% This function analyzes a quadrature set in terms of the phase averaged displaced thermal state model
-% For this scheme to work it is important that the state is rotation-symmetric
-% In this case one can investigate instead of the 2D phase space distribution the associated phi integrated version which has the form
-% Q_1D(|alpha|) = 2*pi*|alpha|*Q_2D(|alpha|)
-% By calculating first the |alpha| values associated to the quadrature pairs (q,p) and then second execute the histogram, we are able
-% to use the full precision of the measured quadrature values since the number of bins scales inverse-linear with bin resolution and not quadratic
-% as in the 2D case. This allows to use either a better binning resolution or the use on smaller datasets without losing precision.
-% However one has still to do first a 2D analysis to check if the state is indead rotation symmetric as this cannot ensured from the 1D graph.
+%% Description:
+%   This function generates and analyses a radial, phase-integrated Husimi Q distribution from two quadrature
+%   datasets using the phase-averaged displaced thermal state (PDTS) model.
+%
+%   The analysis assumes that the investigated quantum state is rotationally symmetric in phase space. Under this
+%   assumption, the two-dimensional Husimi Q distribution can be reduced to a distribution depending only on the
+%   radial phase-space coordinate |alpha|:
+%
+%   Q_1D(|alpha|) = 2*pi*|alpha|*Q_2D(|alpha|).
+%
+%   The radial quadrature values are calculated from the two quadratures, histogrammed, and fitted using the radial
+%   PDTS Husimi Q distribution. This one-dimensional approach permits finer binning or the analysis of smaller
+%   datasets compared with a two-dimensional histogram.
+%
+%   A two-dimensional Husimi Q analysis should be performed beforehand to verify that the state is rotationally
+%   symmetric, as this property cannot be determined from the radial distribution alone.
+%
+%% Syntax:
+%   SaveStruct = execAnalysis_HusimiQ_DTS_By1DModel()
+%   SaveStruct = execAnalysis_HusimiQ_DTS_By1DModel(Options)
+%
+%% Input:
+% name-value input options:
+%
+% quadrature-data options:
+%   X1                                              - quadrature data associated with q; can be supplied directly
+%                                                     (default: [])
+%
+%   X2                                              - quadrature data associated with p; can be supplied directly
+%                                                     (default: [])
+%
+%   X1_Indices                                      - indices selecting the data subset of X1 (default: [])
+%
+%   X2_Indices                                      - indices selecting the data subset of X2 (default: [])
+%
+%   X1_EdgeIndices                                  - start and end indices defining data subsets of X1 (default: [])
+%
+%   X2_EdgeIndices                                  - start and end indices defining data subsets of X2 (default: [])
+%
+%   InputFilePath                                   - path to a MATLAB file from which quadrature and index data can
+%                                                     be loaded (default: '')
+%
+%   X1String                                        - variable name of X1 in InputFilePath (default: '')
+%
+%   X2String                                        - variable name of X2 in InputFilePath (default: '')
+%
+%   X1_IndicesString                                - variable name of X1_Indices in InputFilePath (default: '')
+%
+%   X2_IndicesString                                - variable name of X2_Indices in InputFilePath (default: '')
+%
+%   X1_EdgeIndicesString                            - variable name of X1_EdgeIndices in InputFilePath (default: '')
+%
+%   X2_EdgeIndicesString                            - variable name of X2_EdgeIndices in InputFilePath (default: '')
+%
+% quadrature-rescaling options:
+%   ScaleChannels                                   - logical value specifying whether the quadrature channels are
+%                                                     rescaled before generating the radial Husimi Q distribution
+%                                                     (default: true)
+%
+% radial Husimi Q-distribution options:
+%   Limits_R                                        - upper limit of the radial coordinate |\alpha|;
+%                                                     the lower limit is always zero (default: 10)
+%
+%   Resolution                                      - bin width of the radial coordinate |\alpha|
+%                                                     (default: 0.01)
+%
+% PDTS-analysis options:
+%   FitMethod                                       - name of the fit method included in the saved figure filename
+%                                                     (default: 'NLSQ-LAR')
+%
+% plotting options:
+%   plotData                                        - logical value specifying whether the radial Husimi Q
+%                                                     distribution and its fitted theory curve are plotted
+%                                                     (default: true)
+%
+%   ShowLegend                                      - logical value specifying whether the fitted photon numbers are
+%                                                     displayed in the plot legend (default: true)
+%
+%   SaveFigure                                      - logical value specifying whether the generated figure is saved
+%                                                     (default: true)
+%
+%   FigureSaveDir                                   - directory in which the figure is saved (default: '')
+%
+%   SaveName                                        - base name of the saved figure (default: 'HusimiQ-PhiIntegrated')
+%
+% result-saving options:
+%   SaveResults                                     - logical value specifying whether SaveStruct is saved to a MATLAB
+%                                                     file (default: false)
+%
+%   ResultSaveDir                                   - directory in which the result file is saved (default: '')
+%
+%   ResultSaveName                                  - name of the result file (default: '')
+%
+%   ResultSaveVariable                              - variable name under which SaveStruct is stored in the result file
+%                                                     (default: 'Results_HusimiQ_RadialFit')
+%
+%% Output:
+%   SaveStruct                                      - structure containing the radial Husimi Q distribution and
+%                                                     PDTS analysis results:
+%
+%       HusimiQ_Radial                              - normalized radial, phase-integrated Husimi Q distribution
+%       Bins_R                                      - bin-center vector of the radial coordinate |\alpha|
+%       Edges_R                                     - bin-edge vector of the radial coordinate |\alpha|
+%       HusimiQ_Radial_Theory                       - fitted radial Husimi Q distribution of the PDTS model
+%       nTherm, nThermErr                           - thermal photon number and its estimated standard uncertainty
+%       nCoherent, nCoherentErr                     - coherent photon number and its estimated standard uncertainty
+%       nRatio, nRatioErr                           - coherent-to-thermal photon-number ratio and its uncertainty
+%       G2, G2Err                                   - second-order correlation function g^{(2)}(0) and its
+%                                                     uncertainty
+%       Coherence, CoherenceErr                     - quantum coherence and its propagated uncertainty
+%
+%% Notes:
+%   The radial coordinate is calculated as
+%
+%   |\alpha| = \frac{1}{\sqrt{2}}\sqrt{X_1^2 + X_2^2}.
+%
+%   The radial distribution is fitted with a modified Bessel function of the first kind according to the
+%   phase-averaged displaced thermal state model.
+%
+%   The fit uses fixed initial parameters n_\mathrm{Therm} = 1 and n_\mathrm{Coherent} = 5, with both photon
+%   numbers constrained to non-negative values.
+%
+%   The uncertainties of nRatio and G2 are currently set to zero because Monte Carlo uncertainty estimation is not
+%   implemented for this one-dimensional analysis.
 
-% Version Number:
-% 1.0 % initial version
 
 
-% Constraints of this analysis program compared to the 2D case
-%   - The poissonErrors are not yet implemented
-%   - The Monte Carlo error estimation is not included. Therefore Ratio and g2 have no Errors
-%   - nMean is not included
-%   - The analysis methods do not have yet separate subfunctions
-%   - There is not yet a numeric way to estimate automatically start parameter for the fit.
-%     Since our photon numbers are usually small they are set right now on nTherm = 1, nCoherent = 5
-
-
-arguments
-    % Options for the quadratures and their indices
-    Options.X1 = [];
-    Options.X2 = [];
-    Options.X1_Indices = [];
-    Options.X2_Indices = [];
-    Options.X1_EdgeIndices = [];
-    Options.X2_EdgeIndices = [];
-    Options.InputFilePath = '';
-    Options.X1String = '';
-    Options.X2String = '';
-    Options.X1_IndicesString = '';
-    Options.X2_IndicesString = '';
-    Options.X1_EdgeIndicesString = '';
-    Options.X2_EdgeIndicesString = '';
-    % Options for quadrature rescaling
-    Options.ScaleChannels = true;
-    % Options for the generation of the Husimi Q distribution 
-    Options.Limits_R = 10;
-    Options.Resolution = 0.01;
-    % Options for the PDTS analysis
-    %Options.MonteCarloError = true;
-    %Options.nMonteCarloIterations = 1000;
-    Options.FitMethod = 'NLSQ-LAR';
-    %Options for the plots
-    Options.plotData = true;
-    Options.ShowLegend = true;
-    Options.SaveFigure = true;
-    Options.FigureSaveDir = '';
-    Options.SaveName = 'HusimiQ-PhiIntegrated';                          
-    % save the results
-    Options.SaveResults = false;
-    Options.ResultSaveDir = '';
-    Options.ResultSaveName = '';
-    Options.ResultSaveVariable = 'Results_HusimiQ_RadialFit';
-
-
-end
+    arguments
+        % Options for the quadratures and their indices
+        Options.X1 = [];
+        Options.X2 = [];
+        Options.X1_Indices = [];
+        Options.X2_Indices = [];
+        Options.X1_EdgeIndices = [];
+        Options.X2_EdgeIndices = [];
+        Options.InputFilePath = '';
+        Options.X1String = '';
+        Options.X2String = '';
+        Options.X1_IndicesString = '';
+        Options.X2_IndicesString = '';
+        Options.X1_EdgeIndicesString = '';
+        Options.X2_EdgeIndicesString = '';
+        % Options for quadrature rescaling
+        Options.ScaleChannels = true;
+        % Options for the generation of the Husimi Q distribution 
+        Options.Limits_R = 10;
+        Options.Resolution = 0.01;
+        % Options for the PDTS analysis
+        %Options.MonteCarloError = true;
+        %Options.nMonteCarloIterations = 1000;
+        Options.FitMethod = 'NLSQ-LAR';
+        %Options for the plots
+        Options.plotData = true;
+        Options.ShowLegend = true;
+        Options.SaveFigure = true;
+        Options.FigureSaveDir = '';
+        Options.SaveName = 'HusimiQ-PhiIntegrated';                          
+        % save the results
+        Options.SaveResults = false;
+        Options.ResultSaveDir = '';
+        Options.ResultSaveName = '';
+        Options.ResultSaveVariable = 'Results_HusimiQ_RadialFit';
+    end
 
 
 
@@ -153,18 +256,20 @@ end
 
     %% 5. Plot the 2D Distribution
     if Options.plotData
-        %% 1. create 1D Graph for the Data
+        % 1. create 1D Graph for the Data
         Fig(1) = figure;
         Line = plot(Bins_R, HusimiQ_Radial,LineWidth=1);
         Line.DisplayName= 'Data';
         hold on;
-        %% 2. create Graph for the optimal fit with a displaced thermal state integrated along phi
+        
+        % 2. create Graph for the optimal fit with a displaced thermal state integrated along phi
         if Options.ShowLegend
             plot(Bins_R,HusimiQ_Radial_Theory,'r',LineWidth=1, DisplayName=['Theory, n_{Th} = ', num2str(nTherm,'%.4f'), ', n_{Coh} = ', num2str(nCoherent,'%.4f')]);
         else
             plot(Bins_R,HusimiQ_Radial_Theory,'r',LineWidth=1)
         end
-        %% 3. set the axis labels
+
+        % 3. set the axis labels
         xlabel('|alpha|');
         legend('location','southwest');
         QST.Helper.graphicsSettings();% a function from carolin to set some plotmaker properties
@@ -172,7 +277,8 @@ end
         set(Axes,fontsize=50,fontname='Arial',linewidth=3);
         Resolution = abs(Bins_R(2)-Bins_R(1));
         Axes.XLim = [Bins_R(1)-Resolution/2, Bins_R(end)+Resolution/2];
-        %% 4. Save the plot
+
+        % 4. Save the plot
         if Options.SaveFigure
             assert(~isequal(Options.FitMethod,''),'No Fitmethod given');
             SaveNameFull = strcat(Options.SaveName, '-Resolution', num2str(Resolution), '-FitMethod-', Options.FitMethod, '-IncludesResults-', string(Options.ShowLegend),'.fig');

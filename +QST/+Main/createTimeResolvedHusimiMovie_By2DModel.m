@@ -1,5 +1,143 @@
 function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
-% function that creates a movie based on a timeresolved Husimi Q distribution
+%% Description:
+%   This function creates a time-resolved movie of the two-dimensional Husimi Q distribution from a two channel dataset.
+%   The selected time interval is divided into consecutive or overlapping subsets, and a Husimi Q
+%   distribution is generated and analysed for every subset using a phase-averaged displaced thermal state model.
+%
+%   The function creates an uncompressed AVI movie showing the time evolution of the two-dimensional Husimi
+%   Q distribution in the q-p phase space. It additionally creates MATLAB figure files showing the
+%   time-dependent mean photon number, g^{(2)}(0), thermal and coherent photon numbers, and quantum coherence.
+%
+%   Quadrature data, time vectors, and edge indices can either be supplied directly or loaded from a MATLAB file.
+%   When data are loaded from a file, default names for time vectors and edge indices can be generated from the
+%   specified quadrature variable names.
+%
+%% Syntax:
+%   createTimeResolvedHusimiMovie_By2DModel()
+%   createTimeResolvedHusimiMovie_By2DModel(Options)
+%
+%% Input:
+% name-value input options:
+%
+% quadrature-data options:
+%   X1                                              - quadrature data associated with q; can be supplied directly
+%                                                     (default: [])
+%
+%   X2                                              - quadrature data associated with p; can be supplied directly
+%                                                     (default: [])
+%
+%   X1_EdgeIndices                                  - start and end indices of time-resolved subsets associated with X1
+%                                                     (default: [])
+%
+%   X2_EdgeIndices                                  - start and end indices of time-resolved subsets associated with X2
+%                                                     (default: [])
+%
+%   MatFilePath                                     - path to the MATLAB file containing quadrature data and associated
+%                                                     time-resolved analysis results (default: '')
+%
+%   X1String                                        - variable name of X1 in MatFilePath; specifying this option causes
+%                                                     X1, X2, time vectors, and edge indices to be loaded from file
+%                                                     (default: '')
+%
+%   X2String                                        - variable name of X2 in MatFilePath (default: '')
+%
+%   X1_EdgeIndicesString                            - variable name of X1 edge indices in MatFilePath; if empty, a
+%                                                     default name based on X1String is used (default: [])
+%
+%   X2_EdgeIndicesString                            - variable name of X2 edge indices in MatFilePath; if empty, a
+%                                                     default name based on X2String is used (default: [])
+%
+% time-interval options:
+%   TimeStart                                       - start time of the analysed interval in seconds (default: 0)
+%
+%   TimeEnd                                         - end time of the analysed interval in seconds (default: 0)
+%
+%   Times1                                          - time vector associated with X1; required if X1 is supplied directly
+%                                                     (default: [])
+%
+%   Times2                                          - time vector associated with X2; required if X2 is supplied directly
+%                                                     (default: [])
+%
+%   Times1String                                    - variable name of Times1 in MatFilePath; if empty, a default name
+%                                                     based on X1String is used (default: '')
+%
+%   Times2String                                    - variable name of Times2 in MatFilePath; if empty, a default name
+%                                                     based on X2String is used (default: '')
+%
+% time-window options:
+%   UseMovingAverage                                - logical value intended to select moving or static averaging windows;
+%                                                     currently declared but not used within this function (default: true)
+%
+%   nStepSize                                       - step size between consecutive analysis windows in quadrature values
+%                                                     (default: 10000)
+%
+%   nQuadratures                                    - number of quadrature values in each analysis window
+%                                                     (default: 30000)
+%
+% Husimi Q-distribution options:
+%   Limits_Q                                        - lower and upper limits of the q-quadrature axis
+%                                                     (default: [-10, 10])
+%
+%   Limits_P                                        - lower and upper limits of the p-quadrature axis
+%                                                     (default: [-10, 10])
+%
+%   Resolution                                      - bin width of the q- and p-quadrature axes (default: 0.1)
+%
+%   ScaleChannels                                   - logical value specifying whether the quadrature channels are
+%                                                     rescaled before the analysis (default: true)
+%
+% PDTS-analysis options:
+%   FitMethod                                       - fitting method passed to execAnalysis_HusimiQ_DTS
+%                                                     (default: 'NLSQ-LAR')
+%
+%   MonteCarloError                                 - logical value specifying whether Monte Carlo uncertainty
+%                                                     estimation is performed (default: false)
+%
+%   nMonteCarloIterations                           - number of Monte Carlo iterations used for uncertainty estimation
+%                                                     (default: 1000)
+%
+% movie options:
+%   Framerate                                       - number of movie frames per second (default: 10)
+%
+% movie-saving options:
+%   MovieSaveDir                                    - directory intended for saving the movie (default: '');
+%
+%   MovieSaveName                                   - base name intended for the movie file (default: '');
+%
+% result-saving options:
+%   SaveMovieData                                   - logical value specifying whether the AnalysisResult structure is
+%                                                     saved to a MATLAB file (default: false)
+%
+%   MovieDataSaveDir                                - directory intended for saving AnalysisResult (default: '');
+%
+%   MovieDataSaveName                               - filename intended for saving AnalysisResult (default: '');
+%
+%% Output:
+%   This function does not return output arguments.
+%
+%   It creates an uncompressed AVI movie containing the two-dimensional Husimi Q distributions of the analysed
+%   time windows. Each movie frame shows the Husimi Q distribution in the q-p plane at one time point.
+%
+%   It additionally creates MATLAB figure files for the time evolution of:
+%
+%   N(t)                                        - mean photon number
+%   g^{(2)}(0,t)                                - second-order correlation function
+%   n_Coherent(t) and n_Thermal(t)              - coherent and thermal photon numbers
+%   C(t)                                        - quantum coherence
+%
+%   If SaveMovieData is true, the function saves the AnalysisResult. Each structure entry contains the calculated Husimi
+%   Q distribution, bin information, fitted photon numbers, correlation data, coherence, and fit-error data.
+%
+%% Notes:
+%   The data are rescaled using the complete input dataset before the selected time interval is split into analysis
+%   windows.
+%
+%   Individual time-window analyses and movie-frame generation are executed using parfor. The Parallel Computing
+%   Toolbox may therefore be required or beneficial.
+%
+
+
+
     arguments
         %Option for the quadrature selection
         Options.X1 = [];
@@ -79,38 +217,34 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
 
 
 
-   %% 1. Select the overall data by Timeinterval
+    %% 1. Select the overall data by Timeinterval
+    
+    % rescale the data best on biggest possible dataset
+    [X1,X2] = QST.HusimiQ.Prepare.rescaleQuadsForHusimiQ(Options.X1,Options.X2,ScaleChannels=Options.ScaleChannels);
+    
+    % get the indices of the dataset inside the chosen time interval
+    [Times_Select,~,~,X1_EdgeIndices_Select,~,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.TimeStart,Options.TimeEnd,Times1,[],[],X1_EdgeIndices,[]);
+    
+    % get the number of subsets % Diese formel scheint falsch zu sein
+    nSubSet = size(X1_EdgeIndices_Select,2);
+    
+    % define the datasets , this can get bigger in RAM but it hopefully is faster
+    X1_Set = zeros(Options.nQuadratures,nSubSet);
+    X2_Set = zeros(Options.nQuadratures,nSubSet);
+    for iSubSet = 1: nSubSet
+        X1_Set(:,iSubSet) = X1(X1_EdgeIndices_Select(1,iSubSet):X1_EdgeIndices_Select(2,iSubSet));
+        X2_Set(:,iSubSet) = X2(X1_EdgeIndices_Select(1,iSubSet):X1_EdgeIndices_Select(2,iSubSet));
+    end
+    Times = Times_Select;
 
-   % rescale the data best on biggest possible dataset
-   [X1,X2] = QST.HusimiQ.Prepare.rescaleQuadsForHusimiQ(Options.X1,Options.X2,ScaleChannels=Options.ScaleChannels);
-
-   [~,~,~,X1_EdgeIndices_Select,X1_Indices_Select,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.TimeStart,Options.TimeEnd,Options.Times1,[],[],Options.X1_EdgeIndices,[]);
-   [~,~,~,~,X2_Indices_Select,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.TimeStart,Options.TimeEnd,Options.Times2,[],[],Options.X2_EdgeIndices,[]);
-   X_Indices_Select = intersect(X1_Indices_Select,X2_Indices_Select);
-   
-
-
-
-   % get the number of subsets
-   nSubSet = floor((length(X_Indices_Select)-Options.nQuadratures+Options.nStepSize)/Options.nStepSize);
-
-   % define the datasets , this can get bigger in RAM but it hopefully is faster
-   X1_Set = zeros(Options.nQuadratures,nSubSet);
-   X2_Set = zeros(Options.nQuadratures,nSubSet);
-   for iSubSet = 1: nSubSet
-       X1_Set(:,iSubSet) = X1(X_Indices_Select((iSubSet-1)*Options.nStepSize+1:(iSubSet-1)*Options.nStepSize+Options.nQuadratures));
-       X2_Set(:,iSubSet) = X2(X_Indices_Select((iSubSet-1)*Options.nStepSize+1:(iSubSet-1)*Options.nStepSize+Options.nQuadratures));
-   end
-   Times = (X1_Indices_Select(1)-1+(1:length(X1_EdgeIndices_Select))*Options.nStepSize+0.5*Options.nQuadratures)/(75.3864*10^6);
-
-   %% 2. execute the analysis
-   AnalysisResult(nSubSet) = struct('HusimiQ',[],'Bins_Q',[],'Bins_P',[],'Edges_Q',[],'Edges_P',[],...
-                                    'nTherm',[],'nThermErr',[],'nCoherent',[],'nCoherentErr',[],'nMean',[],'nMeanErr',[],'nRatio',[],'nRatioErr',[],...
-                                    'G2',[],'G2Err',[],'Coherence',[],'CoherenceErr',[],'PoissonError',[],'PoissonErrorCut',[],'HusimiCut',[],'HusimiCutTheory',[]);
-   parfor iSubSet = 1:nSubSet
-       disp(iSubSet)
-       disp(Times(iSubSet))
-       Result = QST.Main.execAnalysis_HusimiQ_DTS(X1=X1_Set(:,iSubSet),...
+    %% 2. execute the analysis
+    AnalysisResult(nSubSet) = struct('HusimiQ',[],'Bins_Q',[],'Bins_P',[],'Edges_Q',[],'Edges_P',[],...
+                                     'nTherm',[],'nThermErr',[],'nCoherent',[],'nCoherentErr',[],'nMean',[],'nMeanErr',[],'nRatio',[],'nRatioErr',[],...
+                                     'G2',[],'G2Err',[],'Coherence',[],'CoherenceErr',[],'PoissonError',[],'PoissonErrorCut',[],'HusimiCut',[],'HusimiCutTheory',[]);
+    parfor iSubSet = 1:nSubSet
+        disp(iSubSet)
+        disp(Times(iSubSet))
+        Result = QST.Main.execAnalysis_HusimiQ_DTS_By2DModel(X1=X1_Set(:,iSubSet),...
                                                              X2=X2_Set(:,iSubSet),...
                                                              Limits_Q=Options.Limits_Q,...
                                                              Limits_P=Options.Limits_P,...
@@ -121,194 +255,127 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
                                                              MonteCarloError=Options.MonteCarloError,...
                                                              nMonteCarloIterations=Options.nMonteCarloIterations, ...
                                                              SaveResults=false);
-
-       % Add all the results into the common structarray
-       AnalysisResult(iSubSet).HusimiQ = Result.HusimiQ;
-       AnalysisResult(iSubSet).Bins_Q = Result.Bins_Q;
-       AnalysisResult(iSubSet).Bins_P = Result.Bins_P;
-       AnalysisResult(iSubSet).Edges_Q = Result.Edges_Q;
-       AnalysisResult(iSubSet).nTherm = Result.nTherm;
-       AnalysisResult(iSubSet).nThermErr = Result.nThermErr;
-       AnalysisResult(iSubSet).nCoherent = Result.nCoherent;
-       AnalysisResult(iSubSet).nCoherentErr = Result.nCoherentErr;
-       AnalysisResult(iSubSet).nMean = Result.nMean;
-       AnalysisResult(iSubSet).nMeanErr = Result.nMeanErr;
-       AnalysisResult(iSubSet).nRatio = Result.nRatio;
-       AnalysisResult(iSubSet).nRatioErr = Result.nRatioErr;
-       AnalysisResult(iSubSet).G2 = Result.G2;
-       AnalysisResult(iSubSet).G2Err = Result.G2Err;
-       AnalysisResult(iSubSet).Coherence = Result.Coherence;
-       AnalysisResult(iSubSet).CoherenceErr = Result.CoherenceErr;
-       AnalysisResult(iSubSet).PoissonError = Result.PoissonError;
-       AnalysisResult(iSubSet).PoissonErrorCut = Result.PoissonErrorCut;
-       AnalysisResult(iSubSet).HusimiCut = Result.HusimiCut;
-       AnalysisResult(iSubSet).HusimiCutTheory = Result.HusimiCutTheory;
-   end
    
+        % Add all the results into the common structarray
+        AnalysisResult(iSubSet).Time = Times(iSubSet);
+        AnalysisResult(iSubSet).HusimiQ = Result.HusimiQ;
+        AnalysisResult(iSubSet).Bins_Q = Result.Bins_Q;
+        AnalysisResult(iSubSet).Bins_P = Result.Bins_P;
+        AnalysisResult(iSubSet).Edges_Q = Result.Edges_Q;
+        AnalysisResult(iSubSet).nTherm = Result.nTherm;
+        AnalysisResult(iSubSet).nThermErr = Result.nThermErr;
+        AnalysisResult(iSubSet).nCoherent = Result.nCoherent;
+        AnalysisResult(iSubSet).nCoherentErr = Result.nCoherentErr;
+        AnalysisResult(iSubSet).nMean = Result.nMean;
+        AnalysisResult(iSubSet).nMeanErr = Result.nMeanErr;
+        AnalysisResult(iSubSet).nRatio = Result.nRatio;
+        AnalysisResult(iSubSet).nRatioErr = Result.nRatioErr;
+        AnalysisResult(iSubSet).G2 = Result.G2;
+        AnalysisResult(iSubSet).G2Err = Result.G2Err;
+        AnalysisResult(iSubSet).Coherence = Result.Coherence;
+        AnalysisResult(iSubSet).CoherenceErr = Result.CoherenceErr;
+        AnalysisResult(iSubSet).PoissonError = Result.PoissonError;
+        AnalysisResult(iSubSet).PoissonErrorCut = Result.PoissonErrorCut;
+        AnalysisResult(iSubSet).HusimiCut = Result.HusimiCut;
+        AnalysisResult(iSubSet).HusimiCutTheory = Result.HusimiCutTheory;
+    end
 
-   %% 3. create the Movie
-   % set figure properties
-   axis tight manual
-   set(gca,"NextPlot","replacechildren")
-
-   % set movie properties
-   Movie2D = VideoWriter(fullfile(Options.MovieSaveDir,strcat(Options.MovieSaveName,".avi")),"Uncompressed AVI");
-   Movie2D.FrameRate = Options.Framerate;
+    Time_Sets = vertcat(AnalysisResult.Time);
+    nCoherent_Sets = vertcat(AnalysisResult.nCoherent);
+    nTherm_Sets = vertcat(AnalysisResult.nTherm);
+    nMean_Sets = nCoherent_Sets + nTherm_Sets;
+    g2_Sets = vertcat(AnalysisResult.G2);
+    Coherence_Sets = vertcat(AnalysisResult.Coherence);
 
 
-   % create the plots
-   Frames = cell([nSubSet,1]);
-   Bins_Q = AnalysisResult(1).Bins_Q;
-   Bins_P = AnalysisResult(1).Bins_P;
-   parfor i = 1:nSubSet
-       pcolor(Bins_Q, Bins_P, AnalysisResult(i).HusimiQ);
-       shading 'flat';
-       axis on;
-       axis equal;
-       colormap hot;
-       Frames{i} = getframe(gcf);
-   end
+   
+    %% 3. create the Movie
+    % set figure properties
+    axis tight manual
+    set(gca,"NextPlot","replacechildren")
+    
+    % set movie properties
+    if ~exist(Options.MovieSaveDir,'dir')
+        mkdir(Options.MovieSaveDir)
+    end
+    
+    % Create the plots
+    Movie2D = VideoWriter(fullfile(Options.MovieSaveDir,strcat(Options.MovieSaveName,"-2DHistogram.avi")),"Uncompressed AVI");
+    Movie2D.FrameRate = Options.Framerate;
+    Frames = cell([nSubSet,1]);
+    parfor iSubSet = 1:nSubSet
+        clf
+        cla
+        pcolor(AnalysisResult(iSubSet).Bins_Q, AnalysisResult(iSubSet).Bins_P, AnalysisResult(iSubSet).HusimiQ)
+        shading 'flat';
+        axis on;
+        axis equal;
+        colormap hot;
+        xlabel('q')
+        ylabel('p')
+        title(strcat('t = ',string(Time_Sets(iSubSet))))
+        Frames{iSubSet} = getframe(gcf);
+        hold off
+    end
+    
+    % add the finished plots to a movie
+    open(Movie2D)
+    for iSubSet = 1:nSubSet
+        Movie2D.writeVideo(Frames{iSubSet});
+    end
+    close(Movie2D)
 
-   % add the finished plots to a movie
-   open(Movie2D)
-   for i = 1:nSubSet
-       Movie2D.writeVideo(Frames{i});
-   end
-   close(Movie2D)
-   if Options.SaveMovieData
-        if isequal(Options.MovieDataSaveDir,'') && ~isequal(Options.MatFilePath,'')
-            [Options.MovieDataSaveDir, Options.MovieDataSaveName,~] = fileparts(Options.MatFilePath);
-            Options.MovieDataSaveName = strcat(Options.MovieDataSaveName,'.mat');
-        end
-        SavePath = fullfile(Options.MovieDataSaveDir,Options.MovieDataSaveName);
-        save(SavePath,"AnalysisResult",'-append');
-   end
+    % save the results
+    if Options.SaveResultData
+         if isequal(Options.MovieDataSaveDir,'') && ~isequal(Options.MatFilePath,'')
+             [Options.MovieDataSaveDir, Options.MovieDataSaveName,~] = fileparts(Options.MatFilePath);
+             Options.MovieDataSaveName = strcat(Options.MovieDataSaveName,'.mat');
+         end
+         SavePath = fullfile(Options.MovieDataSaveDir,Options.MovieDataSaveName);
+         if exist(SavePath,"file")
+             save(SavePath,"AnalysisResult",'-append');
+         else
+             save(SavePath,"AnalysisResult");
+         end
+    end
+
+    %% create Extra Images
+    %% N(t)
+    clf
+    plot(Time_Sets,nMean_Sets);
+    xlim([Time_Sets(1),Time_Sets(end)])
+    xlabel('t in s')
+    ylabel('Mean Photonumber')
+    title('N(t)')
+    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-N(t)-','.fig'))
+    
+    %% g^2(0,t)
+    clf
+    plot(Time_Sets,g2_Sets);
+    xlim([Time_Sets(1),Time_Sets(end)])
+    ylim([0,2])
+    xlabel('t in s')
+    ylabel('g^2(0,t)')
+    title('g^2(0,t)')
+    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-g2(0,t)-','.fig'))
+    
+    %% nTherm und nCoherent
+    clf
+    plot(Time_Sets,nCoherent_Sets);
+    hold on
+    plot(Time_Sets,nTherm_Sets);
+    hold off
+    xlim([Time_Sets(1),Time_Sets(end)])
+    xlabel('t in s')
+    ylabel('Phtono number')
+    legend('nCoherent','nThermal')
+    title('Thermal and Coherent Photonnumber')
+    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-nTherm(t)-nCoherent(t)-','.fig'))
+    
+    %% Quantum Coherence
+    plot(Time_Sets,Coherence_Sets);
+    xlim([Time_Sets(1),Time_Sets(end)])
+    xlabel('t in s')
+    ylabel('Quantum Coherence')
+    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-QuantumCoherence(t)-','.fig'))
 end
-
-   % Set up Colormap
-  %MaxProb = max(cellfun(@(y) max(y(:)),DataSets));
-  %MinProb = 0;
-  %clim manual;
-  %clim([MinProb,MaxProb])
-  %colorbar
-  %set(gca, 'nextplot', 'replacechildren');
-%
-  %
-%
-  %%% 3. Set up 2D Movie
-
-%
-  %open(Movie2D);
-  %Fig = figure;
-  %Fig.Position(1:2) = [100,100];
-  %Fig.Position(3:4) = [600,800];
-%
-  %%% 4. create 2D Movie
-  %for i = 1:nSetsOfData
-  %    % Expanded version of the plots
-  %    tiledlayout('flow',TileSpacing="compact");
-  %    nexttile([2,2])
-  %    pcolor(Bins1,Bins2,DataSets{i})
-  %    shading 'flat';
-  %    axis on;
-  %    axis equal;
-  %    colormap hot;
-  %    xlabel('q')
-  %    ylabel('p')
-  %    title(strcat('t = ',string(Time_Sets(i)),' s', ' N1:',string(N1_Sets(i)),' N2:',string(N1_Sets(i))))
-  %    
-  %    nexttile([2,2])
-  %    shadedErrorBar(Bins1,HusimiCut_Sets{i},poissonErrorCut_Sets{i})
-  %    hold on 
-  %    plot(Bins1,HusimiCutTheory_Sets{i})
-  %    hold on
-  %    plot(HusimiCut_DataForFit_Sets{i},HusimiCut_DataForFit_H_Sets{i})
-  %    hold off
-  %    xlabel('q')
-  %    ylabel('ProbQ((q,p = 0))');
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),meanN_Sets(1:i));
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,max(meanN_Sets)+1])
-  %    xlabel('t in s')
-  %    ylabel('Mean Photonumber')
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),nCoherent_Sets(1:i));
-  %    %errorbar(Time_Sets(1:i),nCoherent_Sets(1:i),nCoherentErr_Sets(1:i));
-  %    hold on
-  %    plot(Time_Sets(1:i),nTherm_Sets(1:i));
-  %    %errorbar(Time_Sets(1:i),nTherm_Sets(1:i),nThermErr_Sets(1:i));
-  %    hold off
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,max(max(nCoherent_Sets+nCoherentErr_Sets),max(nTherm_Sets+nThermErr_Sets))+0.2])
-  %    xlabel('t in s')
-  %    ylabel('Phtono number')
-  %    legend('nCoherent','nThermal')
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),g2_Sets(1:i));
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,2])
-  %    xlabel('t in s')
-  %    ylabel('g^2(0,t)')
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),Coherence_Sets(1:i));
-  %    %errorbar(Time_Sets(1:i),Coherence_Sets(1:i),CoherenceErr_Sets(1:i));
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,max(Coherence_Sets+CoherenceErr_Sets)+0.1])
-  %    xlabel('t in s')
-  %    ylabel('Quantum Coherence')
-%
-%
-%
-  %    Frame = getframe(gcf);
-  %    writeVideo(Movie2D,Frame)
-%
-%
-  %end
-  %close(Movie2D);
-%
-  %% Extra Images
-  %% N(t)
-  %clf
-  %plot(Time_Sets,meanN_Sets);
-  %xlim([Time_Sets(1),Time_Sets(end)])
-  %xlabel('t in s')
-  %ylabel('Mean Photonumber')
-  %title('N(t)')
-  %savefig(strcat(Options.SavePath,filesep,Options.Filename,'-N(t)-','.fig'))
-%
-  %% g^2(0,t)
-  %clf
-  %plot(Time_Sets,g2_Sets);
-  %xlim([Time_Sets(1),Time_Sets(end)])
-  %ylim([0,2])
-  %xlabel('t in s')
-  %ylabel('g^2(0,t)')
-  %title('g^2(0,t)')
-  %savefig(strcat(Options.SavePath,filesep,Options.Filename,'-g2(0,t)-','.fig'))
-%
-  %% nTherm und nCoherent
-  %clf
-  %plot(Time_Sets,nCoherent_Sets);
-  %hold on
-  %plot(Time_Sets,nTherm_Sets);
-  %hold off
-  %xlim([Time_Sets(1),Time_Sets(end)])
-  %xlabel('t in s')
-  %ylabel('Phtono number')
-  %legend('nCoherent','nThermal')
-  %title('Thermal and Coherent Photonnumber')
-  %savefig(strcat(Options.SavePath,filesep,Options.Filename,'-nTherm(t)-nCoherent(t)-','.fig'))
-%
-  %%
-  %clf
-  %plot(Time_Sets,Coherence_Sets);
-  %xlim([Time_Sets(1),Time_Sets(end)])
-  %xlabel('t in s')
-  %ylabel('Quantum Coherence')
-  %savefig(strcat(Options.SavePath,filesep,Options.Filename,'-QuantumCoherence(t)-','.fig'))
-%

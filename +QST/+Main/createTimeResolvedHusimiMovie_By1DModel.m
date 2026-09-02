@@ -1,19 +1,126 @@
 function [] = createTimeResolvedHusimiMovie_By1DModel(Options)
-% This function analyzes the a states Husimi-Q distribution based on the displaced thermal model using the phase integrated husimi Q distribution. 
-% Requirement for this method is that the state is recorded phase averaged and the 2D distribution is rotation symmetrical
-
-% the function returns an video in uncompressed .avi format featuring the time evolution of the angle integrated phase averaged husimi Q distribution
-% found from experimental data and the applied fit using the displaced thermal state model. The investigated time interval can be given freely,
-% it must not contains temporal breaks or beforehand quadrature filtering.
-% Additionally the temporal resolved quantities N Total, Ncoherent, N thermal, g2 and Quantum coherence are displayed against the time in extra figures
-
-% the function allows to choose which and where the results should be saved.
-% The function is complementary to the function 'QST.Main.createTimeResolvedHusimiMovie_By2DModel' as this function does not create the full
-% 2D Husimi Q distribution and concentrates on estimating the optimal thermal and coherent contributions with a minimal of quadrature data
-% The Results are saved in the same sub dir
-
-% Version
-% 1.0 : initial implementation
+%% Description:
+%   This function performs a time-resolved analysis of a phase-averaged, rotationally symmetric quantum state using
+%   the radial, phase-integrated Husimi Q distribution and a displaced thermal state (DTS) model.
+%
+%   The function divides the dataset consisting of two orthgonal quadrature sets into consecutive time windows, generates a radial Husimi
+%   Q distribution for every window, and fits the distribution with the phase-averaged DTS model. The resulting
+%   time evolution is visualized as an uncompressed AVI movie.
+%
+%   Each movie frame contains the measured radial Husimi Q distribution, the corresponding fitted theory curve,
+%   and the fitted thermal photon number, coherent photon number, g^{(2)}(0), and quantum coherence.
+%
+%   Additionally, the function creates and saves MATLAB figure files for the time-dependent mean photon number,
+%   g^{(2)}(0), thermal and coherent photon numbers, and quantum coherence.
+%
+%   This method requires a phase-averaged state with rotational symmetry in phase space. A two-dimensional Husimi
+%   Q analysis should be performed beforehand to verify this requirement.
+%
+%% Syntax:
+%   createTimeResolvedHusimiMovie_By1DModel()
+%   createTimeResolvedHusimiMovie_By1DModel(Options)
+%
+%% Input:
+% name-value input options:
+%
+% quadrature-data options:
+%   X1                                              - quadrature data associated with q; can be supplied directly
+%                                                     (default: [])
+%
+%   X2                                              - quadrature data associated with p; can be supplied directly
+%                                                     (default: [])
+%
+%   X1_EdgeIndices                                  - edge indices associated with X1 (default: [])
+%
+%   X2_EdgeIndices                                  - edge indices associated with X2 (default: [])
+%
+%   MatFilePath                                     - path to a MATLAB file from which X1 and X2 can be loaded
+%                                                     (default: '')
+%
+%   X1String                                        - variable name of X1 in MatFilePath; if specified, X1 is loaded
+%                                                     from MatFilePath (default: '')
+%
+%   X2String                                        - variable name of X2 in MatFilePath; if specified, X2 is loaded
+%                                                     from MatFilePath (default: '')
+%
+% time-interval options:
+%   TimeStart                                       - start time of the analysed interval in seconds (default: 0)
+%
+%   TimeEnd                                         - end time of the analysed interval in seconds (default: 0)
+%
+% moving-average options:
+%   UseMovingAverage                                - logical value specifying the time-window method:
+%                                                     true:  use overlapping moving windows (default)
+%                                                     false: use consecutive static windows
+%
+%   nQuadratures                                    - number of quadrature values contained in each time window
+%                                                     (default: 10000)
+%
+%   nStepSize                                       - step size between consecutive moving windows in quadrature values;
+%                                                     used only when UseMovingAverage is true (default: 10000)
+%
+% radial Husimi Q-distribution options:
+%   Limits_R                                        - upper limit of the radial coordinate |alpha|;
+%                                                     the lower limit is zero (default: 10)
+%
+%   Resolution                                      - bin width of the radial Husimi Q distribution (default: 0.10)
+%
+%   ScaleChannels                                   - logical value specifying whether the quadrature channels are
+%                                                     rescaled before the time-resolved analysis (default: true)
+%
+% analysis options:
+%   FitMethod                                       - fit-method identifier passed to the radial Husimi Q analysis
+%                                                     function (default: 'NLSQ-LAR')
+%
+% movie options:
+%   Framerate                                       - number of movie frames per second (default: 10)
+%
+% result-saving options:
+%   SaveDir                                         - directory in which the movie, figures, and optionally result data
+%                                                     are saved (default: '')
+%
+%   SaveName                                        - base name used for saved movie and figure files (default: '')
+%
+%   SaveResultData                                  - logical value specifying whether the time-resolved analysis
+%                                                     structure is saved to a MATLAB file (default: false)
+%
+%% Output:
+%   This function does not return output arguments.
+%
+%   The function creates an uncompressed AVI movie named:
+%
+%   <SaveName>-1DHistogram.avi
+%
+%   The function additionally saves the following MATLAB figure files:
+%
+%   <SaveName>-N(t)-.fig                            - mean photon number as a function of time
+%   <SaveName>-g2(0,t)-.fig                         - g^{(2)}(0) as a function of time
+%   <SaveName>-nTherm(t)-nCoherent(t)-.fig          - thermal and coherent photon numbers as functions of time
+%   <SaveName>-QuantumCoherence(t)-.fig             - quantum coherence as a function of time
+%
+%   If SaveResultData is true, the structure AnalysisResult is stored in the specified MATLAB result file. Each
+%   structure entry corresponds to one analysed time window and contains:
+%
+%       Time                                        - time associated with the analysis window
+%       EdgeIndices                                 - start and end quadrature indices of the analysis window
+%       HusimiQ_Radial                              - measured radial Husimi Q distribution
+%       Bins_R, Edges_R                             - radial histogram bin centers and bin edges
+%       HusimiQ_Radial_Theory                       - fitted radial Husimi Q distribution
+%       nTherm, nThermErr                           - thermal photon number and its uncertainty
+%       nCoherent, nCoherentErr                     - coherent photon number and its uncertainty
+%       nRatio, nRatioErr                           - photon-number ratio and its uncertainty
+%       G2, G2Err                                   - g^{(2)}(0) and its uncertainty
+%       Coherence, CoherenceErr                     - quantum coherence and its uncertainty
+%
+%% Notes:
+%   The quadratures are rescaled once using the complete input dataset before the selected time interval is divided
+%   into analysis windows.
+%
+%   The analyses of individual time windows are executed in parallel using parfor. A Parallel Computing Toolbox may
+%   therefore be required or beneficial.
+%
+%   If SaveResultData is true, SaveDir and SaveName are inferred from MatFilePath when SaveDir is empty and
+%   MatFilePath is provided.
 
     arguments
         %Option for the quadrature selection
@@ -27,8 +134,6 @@ function [] = createTimeResolvedHusimiMovie_By1DModel(Options)
         % Option for the timeinterval
         Options.TimeStart = 0;
         Options.TimeEnd = 0;
-        Options.Times1 = [];
-        Options.Times2 = [];
         % Options for the moving average
         Options.UseMovingAverage = true;
         Options.nQuadratures = 10000;
@@ -182,6 +287,8 @@ function [] = createTimeResolvedHusimiMovie_By1DModel(Options)
        Movie1D.writeVideo(Frames{i});
    end
    close(Movie1D)
+
+   % save the result
    if Options.SaveResultData
         if isequal(Options.SaveDir,'') && ~isequal(Options.MatFilePath,'')
             [Options.SaveDir, Options.SaveName,~] = fileparts(Options.MatFilePath);
@@ -203,7 +310,7 @@ function [] = createTimeResolvedHusimiMovie_By1DModel(Options)
   Coherence_Sets = vertcat(AnalysisResult.Coherence);
 
 
-  %% Extra Images
+  %% create Extra Images
   %% N(t)
   clf
   plot(Time_Sets,nMean_Sets);
@@ -236,103 +343,10 @@ function [] = createTimeResolvedHusimiMovie_By1DModel(Options)
   title('Thermal and Coherent Photonnumber')
   savefig(strcat(Options.SaveDir,filesep,Options.SaveName,'-nTherm(t)-nCoherent(t)-','.fig'))
 %
-  %%
-  clf
+  %% Quantum Coherence
   plot(Time_Sets,Coherence_Sets);
   xlim([Time_Sets(1),Time_Sets(end)])
   xlabel('t in s')
   ylabel('Quantum Coherence')
   savefig(strcat(Options.SaveDir,filesep,Options.SaveName,'-QuantumCoherence(t)-','.fig'))
-%
-
 end
-
-
-
-
-  % Set up Colormap
-  %MaxProb = max(cellfun(@(y) max(y(:)),DataSets));
-  %MinProb = 0;
-  %clim manual;
-  %clim([MinProb,MaxProb])
-  %colorbar
-  %set(gca, 'nextplot', 'replacechildren');
-%
-  %
-%
-  %%% 3. Set up 2D Movie
-
-%
-  %open(Movie2D);
-  %Fig = figure;
-  %Fig.Position(1:2) = [100,100];
-  %Fig.Position(3:4) = [600,800];
-%
-  %%% 4. create 2D Movie
-  %for i = 1:nSetsOfData
-  %    % Expanded version of the plots
-  %    tiledlayout('flow',TileSpacing="compact");
-  %    nexttile([2,2])
-  %    pcolor(Bins1,Bins2,DataSets{i})
-  %    shading 'flat';
-  %    axis on;
-  %    axis equal;
-  %    colormap hot;
-  %    xlabel('q')
-  %    ylabel('p')
-  %    title(strcat('t = ',string(Time_Sets(i)),' s', ' N1:',string(N1_Sets(i)),' N2:',string(N1_Sets(i))))
-  %    
-  %    nexttile([2,2])
-  %    shadedErrorBar(Bins1,HusimiCut_Sets{i},poissonErrorCut_Sets{i})
-  %    hold on 
-  %    plot(Bins1,HusimiCutTheory_Sets{i})
-  %    hold on
-  %    plot(HusimiCut_DataForFit_Sets{i},HusimiCut_DataForFit_H_Sets{i})
-  %    hold off
-  %    xlabel('q')
-  %    ylabel('ProbQ((q,p = 0))');
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),meanN_Sets(1:i));
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,max(meanN_Sets)+1])
-  %    xlabel('t in s')
-  %    ylabel('Mean Photonumber')
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),nCoherent_Sets(1:i));
-  %    %errorbar(Time_Sets(1:i),nCoherent_Sets(1:i),nCoherentErr_Sets(1:i));
-  %    hold on
-  %    plot(Time_Sets(1:i),nTherm_Sets(1:i));
-  %    %errorbar(Time_Sets(1:i),nTherm_Sets(1:i),nThermErr_Sets(1:i));
-  %    hold off
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,max(max(nCoherent_Sets+nCoherentErr_Sets),max(nTherm_Sets+nThermErr_Sets))+0.2])
-  %    xlabel('t in s')
-  %    ylabel('Phtono number')
-  %    legend('nCoherent','nThermal')
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),g2_Sets(1:i));
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,2])
-  %    xlabel('t in s')
-  %    ylabel('g^2(0,t)')
-%
-  %    nexttile([1,4]);
-  %    plot(Time_Sets(1:i),Coherence_Sets(1:i));
-  %    %errorbar(Time_Sets(1:i),Coherence_Sets(1:i),CoherenceErr_Sets(1:i));
-  %    xlim([Time_Sets(1),Time_Sets(end)])
-  %    ylim([0,max(Coherence_Sets+CoherenceErr_Sets)+0.1])
-  %    xlabel('t in s')
-  %    ylabel('Quantum Coherence')
-%
-%
-%
-  %    Frame = getframe(gcf);
-  %    writeVideo(Movie2D,Frame)
-%
-%
-  %end
-  %close(Movie2D);
-%
