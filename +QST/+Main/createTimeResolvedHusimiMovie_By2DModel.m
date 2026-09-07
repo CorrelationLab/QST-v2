@@ -223,7 +223,7 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
     [X1,X2] = QST.HusimiQ.Prepare.rescaleQuadsForHusimiQ(Options.X1,Options.X2,ScaleChannels=Options.ScaleChannels);
     
     % get the indices of the dataset inside the chosen time interval
-    [Times_Select,~,~,X1_EdgeIndices_Select,~,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.TimeStart,Options.TimeEnd,Times1,[],[],X1_EdgeIndices,[]);
+    [Times_Select,~,~,X1_EdgeIndices_Select,~,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.TimeStart,Options.TimeEnd,Options.Times1,[],[],Options.X1_EdgeIndices,[]);
     
     % get the number of subsets % Diese formel scheint falsch zu sein
     nSubSet = size(X1_EdgeIndices_Select,2);

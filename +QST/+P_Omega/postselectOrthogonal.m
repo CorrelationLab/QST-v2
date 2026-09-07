@@ -1,4 +1,4 @@
-function [] = postSelectOrthogonal(FilePath, X_PsFast, X_PsSlow, X_Target, Options)
+function [] = postselectOrthogonal(FilePath, X_PsFast, X_PsSlow, X_Target, Options)
 % POSTSELECTORTHOGONAL Takes a 3 Channel Measurement Quadrature File and
 % calculates the Phase Theta between the Target Channel (X_Target) and the Postselection Channel with the faster Piezo
 % Movement (X_PsFast) as well as an orthogonal Data Subset of all Quadratures and Phase regarding the Orthogonality
@@ -169,9 +169,9 @@ function [] = postSelectOrthogonal(FilePath, X_PsFast, X_PsSlow, X_Target, Optio
                                                                                                                 Smoothing_Accuracy_MovingAverage=Options.PostOrth_Smoothing_Accuracy_MovingAverage);
     
     %% 5. Calculate the Photon Numbers of each channel
-    N_PsFast_MesMean = QST.Analysis.PhotoNumbers.calcMeanPhotoNumber(X_PsFast);
-    N_PsSlow_MesMean = QST.Analysis.PhotoNumbers.calcMeanPhotoNumber(X_PsFast);
-    N_Target_MesMean = QST.Analysis.PhotoNumbers.calcMeanPhotoNumber(X_Target);
+    N_PsFast_MesMean = QST.N_G2.computeNmean(X_PsFast);
+    N_PsSlow_MesMean = QST.N_G2.computeNmean(X_PsFast);
+    N_Target_MesMean = QST.N_G2.computeNmean(X_Target);
     N_Ps_MesMean = N_PsFast_MesMean + N_PsSlow_MesMean;
 
 

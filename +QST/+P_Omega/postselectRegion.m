@@ -1,4 +1,4 @@
-function [] = postSelectRegion(FilePath, Regions, Options)
+function [] = postselectRegion(FilePath, Regions, Options)
 % POSTSELECTREGION Postselect Subsets of Data from TargetChannel and from Theta, which counterpart data
 % in the postselection channels lays in a beforehand specified region (e.g. a circle ring)
 %
