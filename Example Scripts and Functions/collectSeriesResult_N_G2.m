@@ -1,4 +1,8 @@
 function [IdentifierSeries,N_1_Mean,N_2_Mean,N_Mean,N_1_Std,N_2_Std,N_Std,G2_1_Mean,G2_2_Mean,G2_Mean,G2_1_Std,G2_2_Std,G2_Std] = collectSeriesResult_N_G2(DirPath, Identifier, Options)
+% This function grabs the N and G2 values from a series of analyses and returns the results
+
+
+
     arguments
         DirPath;
         Identifier;
@@ -7,6 +11,7 @@ function [IdentifierSeries,N_1_Mean,N_2_Mean,N_Mean,N_1_Std,N_2_Std,N_Std,G2_1_M
         Options.Unwanted = [];
         Options.sortResults = true;
     end
+
 
     % collect N
     [N_1,IdentifierSeries] = QST.Data_Managment.Series.CollectVariablesFromSeries(DirPath,["Results_N_G2_TimeResolved.Channel1.N_High","Results_N_G2_TimeResolved.Channel1.N"],Identifier,Wanted=Options.Wanted,Unwanted=Options.Unwanted,SaveAsRegularArray=false);

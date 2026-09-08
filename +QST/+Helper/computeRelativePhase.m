@@ -37,7 +37,7 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computeRelativePhase(Xa,Xb, Piezo
     end
 
     % Calculate the smoothed cross correlation between Xa and Xb
-    Y_Smoothed = QST.DensityMatrix.computeSmoothedCrossCorr(Xa,Xb,Accuracy_Spline=Options.Smoothing_Accuracy_Spline);
+    Y_Smoothed = QST.Helper.computeSmoothedCrossCorr(Xa,Xb,Accuracy_Spline=Options.Smoothing_Accuracy_Spline);
 
     % Set dimensions of the used data 
     [nPointsPerSegment,nSegments] = size(Y_Smoothed);

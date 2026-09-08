@@ -21,14 +21,15 @@ function [FilePaths] = getFilePaths(RootDirectory, Options)
     arguments
         RootDirectory;
         Options.IncludeSubDirs=true;
+        Options.FileType='*.*'
     end
 
 
     % Extract the absolute paths of all files
     if Options.IncludeSubDirs == false
-        FilePaths = dir(fullfile(RootDirectory, '*'));
+        FilePaths = dir(fullfile(RootDirectory, Options.FileType));
     else
-        FilePaths = dir(fullfile(RootDirectory, '**\*.*'));
+        FilePaths = dir(fullfile(RootDirectory, strcat('**\',Options.FileType)));
     end 
     FilePaths = FilePaths(~[FilePaths.isdir]);
     FilePaths = fullfile({FilePaths.folder},{FilePaths.name});

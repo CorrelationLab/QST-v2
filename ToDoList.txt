@@ -1,3 +1,0 @@
-1. Scripte aus dem Tool entfernen
-2. Nonsense komplett entfernen
-3. Fehlende Dependencies ergänzen :error_propagation, dataTipUpdateFcn

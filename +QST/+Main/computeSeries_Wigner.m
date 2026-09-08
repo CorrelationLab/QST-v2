@@ -59,7 +59,7 @@ function [] = computeSeries_Wigner(Dir_Data,Dir_WignerTable,DensityMatrixIndex)
     Q_Def = [GridInfo.minQ,GridInfo.stepQ,GridInfo.maxQ];
     
     % set Rho_String
-    Rho_String = strcat("DensityMatrices(",string(DensityMatrixIndex),").Rho");
+    Rho_String = strcat("DensityMatrix",string(DensityMatrixIndex),").Rho");
 
     % calculates the density matrix for agiven dataset
     Paths = QST.File_Managment.getFilePaths(Dir_Data);

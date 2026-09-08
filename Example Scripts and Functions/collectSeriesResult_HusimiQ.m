@@ -1,4 +1,7 @@
 function [Identifier,nTherm,nThermErr,nCoherent,nCoherentErr,nMean,Coherence,CoherenceErr,nRatio,g2] = collectSeriesResult_HusimiQ(DirPath, Identifier, Options)
+%This example function takes the information of a Husimi Q anaylsis of a measurement series and plots the result%
+
+
     arguments
         DirPath;
         Identifier;
@@ -8,6 +11,7 @@ function [Identifier,nTherm,nThermErr,nCoherent,nCoherentErr,nMean,Coherence,Coh
         Options.SavePath = '';
     end
 
+    %% 1. Extract the result from the series
     [nTherm,IdentifierSeries] = QST.Data_Managment.Series.CollectVariablesFromSeries(DirPath,'Results_HusimiQ.nTherm',Identifier,SaveAsRegularArray=true);
     [nThermErr,~] = QST.Data_Managment.Series.CollectVariablesFromSeries(DirPath,'Results_HusimiQ.nThermErr',Identifier,SaveAsRegularArray=true);
     [nCoherent,~] = QST.Data_Managment.Series.CollectVariablesFromSeries(DirPath,'Results_HusimiQ.nCoherent',Identifier,SaveAsRegularArray=true);
@@ -29,13 +33,13 @@ function [Identifier,nTherm,nThermErr,nCoherent,nCoherentErr,nMean,Coherence,Coh
     nRatio = nRatio';
     g2 = g2';
 
+
+    %% 2 Plot the results
     if Options.createPlots == true
         clf
         Fig(1) = figure;
         errorbar(IdentifierSeries,nTherm,nThermErr);
         xlabel(Options.IdentifierLabel)
-        %ylabel('$N_\text{Therm}$',Interpreter='latex')
-        %title(strcat('$N_\text{Therm}$ in Dependence of ', Options.IdentifierTitle),Interpreter='latex')
         ylabel('N Therm')
         title(strcat('N Therm in Dependence of ', Options.IdentifierTitle))
         if ~isequal(Options.SavePath,'')
