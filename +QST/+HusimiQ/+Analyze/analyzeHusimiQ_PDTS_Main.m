@@ -110,7 +110,7 @@ function [nCoherent,nCoherentErr,nTherm,nThermErr,nMean,nMeanErr,nRatio,nRatioEr
         nQuads;
         Options.MonteCarloError=false;
         Options.nMonteCarloIterations=1000;
-        Options.FitMethod = 'NLSQ-LAR';
+        Options.FitMethod = 'LAR';
     end
 
 

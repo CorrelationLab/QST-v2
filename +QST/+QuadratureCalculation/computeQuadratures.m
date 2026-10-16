@@ -1,4 +1,4 @@
-function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO, FilenameSIG, Channels, OffsetType, ModulatedPhase, RemoveDetectorResponse, IntegrationDutyCycle, nMean_Min, Delta, Options)
+function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO, FilenameSIG, Channels, OffsetType, ModulatedPhase, RemoveDetectorResponse, Options)
 %% Description:
 %   This function reads in a main directory of a series of measurements and computes the quadratures out of each measurement.
 %   To this end each measurement has to consist six files (1 vacuum measurement for calibration, 1 measurement with signal, each measurement saves 3 
@@ -39,10 +39,15 @@ function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO
 %                                                 local oscillator and signal was intrinsically stabel and modulated by a piezo (LO acts as source of the signal).
 %                                               - Use RandomPhase when the phase relation was random and consecutive quadratures should be uncorrelated
 %                                                 (polariton condensate emission)
+%   Options.RowsForPointwiseVariance = 200      - maximum number of segments used to compute the pointwise
+%                                                 variance (default: 200)
 %   Options.IntegrationDutyCycle = 1/3          - width of the integration window used to convert the digitalized values from the adc card via integration to a quadrature value.
 %                                                 The integration window size is given in relation to the time interval between two pulses. 
 %                                                 If this time is for e.g. equivalent to 33 voltage values the integration interval includes 11 points 
 %                                                 centered around the pulse maximum
+%   Options.VectorizePWVarianceComputation=true - logical value selecting pointwise-variance computation:
+%                                                     false: compute the variance in a loop (default)
+%                                                     true:  use a vectorized computation with higher memory usage
 %   Options.nMean_Min = 1000000                 - number of consective quadratures used to compute the detector response
 %   Options.Delta = 50                          - order up to which correlations between consecutive quadratures should be removed
 %   
@@ -63,11 +68,14 @@ function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO
         OffsetType = ["Global", "Global", "Global", "Global"]; % this has to be strings!!!
         ModulatedPhase = [true,true,true,true];
         RemoveDetectorResponse = [false,false,false,false];
-        IntegrationDutyCycle = 1/3;
-        nMean_Min = 10000000;
-        Delta = 50;
+        Options.LO_RepetitionRate = 75.3864
+        Options.RowsForPointwiseVariance = 200;
+        Options.IntegrationDutyCycle = 1/3;
+        Options.VectorizePWVarianceComputation = true;
+        Options.nMean_Min = 10000000;
+        Options.Delta = 50;
         Options.StarHub = true;
-        Options.SaveData
+        Options.SaveData = false
     end
     
     
@@ -87,7 +95,11 @@ function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO
     Alpha = zeros(length(Channels),1); %The Magnification created by the LO % This is better replaced by a dictionary (new since Matlab 2022b)
     
     %3.1 calculate the not regulized quadratures for the LO
-    XLO = QST.QuadratureCalculation.integratePulses(Data8bitLO(:,:,Channels), Channels, ConfigLO, DutyCycle=IntegrationDutyCycle);
+    XLO = QST.QuadratureCalculation.integratePulses(Data8bitLO(:,:,Channels),...
+                                                    ConfigLO,...
+                                                    RowsForPointwiseVariance=Options.RowsForPointwiseVariance,...
+                                                    IntegrationDutyCycle=Options.IntegrationDutyCycle,...
+                                                    VectorizePWVarianceComputation=Options.VectorizePWVarianceComputation);
     nChannels = length(Channels);
     for iCh = 1:nChannels
         Data = XLO(:,:,iCh);
@@ -95,7 +107,7 @@ function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO
         Data = QST.QuadratureCalculation.removeOffset(Data,OffsetType(Channels(iCh)));
         % 3.3 remove the detectorresponse
         if RemoveDetectorResponse(Channels(iCh))
-            DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
+            DataCleaned = QST.QuadratureCalculation.removeDetectorResponse(Data,Options.nMean_Min,Options.Delta);
         else
             DataCleaned = Data;
         end
@@ -109,7 +121,12 @@ function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO
     %% 4. compute quadratures of the signal and calibrate the results with the LO amplification
     % 4.1 calculate the Quadratures
     QST.Helper.dispstat('compute Lo + Signal quadratures','timestamp','keepthis',0);
-    X = QST.QuadratureCalculation.integratePulses(Data8bitSIG(:,:,Channels),Channels,ConfigSIG,DutyCycle=IntegrationDutyCycle);
+    X = QST.QuadratureCalculation.integratePulses(Data8bitSIG(:,:,Channels),...
+                                                  ConfigSIG,...
+                                                  LO_RepetitionRate = Options.LO_RepetitionRate,...
+                                                  RowsForPointwiseVariance=Options.RowsForPointwiseVariance,...
+                                                  IntegrationDutyCycle=Options.IntegrationDutyCycle,...
+                                                  VectorizePWVarianceComputation=Options.VectorizePWVarianceComputation);
     [X1, X2, X3, X4] = deal(0);
     % 4.1 Clean the data individually for each channel
     for iCh = 1:nChannels
@@ -123,7 +140,7 @@ function [X1, X2, X3, X4, PiezoInfos] = computeQuadratures(Directory, FilenameLO
         Data = Data(:);
         if RemoveDetectorResponse(Channels(iCh))
             QST.Helper.dispstat(['Remove Detectorresponse from Channel ',num2str(Channels(iCh)),'...'],'timestamp','keepthis',0);
-            Data = QST.QuadratureCalculation.removeDetectorResponse(Data,nMean_Min,Delta);
+            Data = QST.QuadratureCalculation.removeDetectorResponse(Data,Options.nMean_Min,Options.Delta);
         end
         % 4.5 cut the data in piezos according to the observed piezo movement if piezo was active on this channel
         if ModulatedPhase(Channels(iCh))

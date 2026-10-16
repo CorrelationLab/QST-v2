@@ -48,9 +48,9 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
 %                                                     default name based on X2String is used (default: [])
 %
 % time-interval options:
-%   TimeStart                                       - start time of the analysed interval in seconds (default: 0)
+%   StartTime                                       - start time of the analysed interval in seconds (default: 0)
 %
-%   TimeEnd                                         - end time of the analysed interval in seconds (default: 0)
+%   EndTime                                         - end time of the analysed interval in seconds (default: 0)
 %
 %   Times1                                          - time vector associated with X1; required if X1 is supplied directly
 %                                                     (default: [])
@@ -65,9 +65,6 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
 %                                                     based on X2String is used (default: '')
 %
 % time-window options:
-%   UseMovingAverage                                - logical value intended to select moving or static averaging windows;
-%                                                     currently declared but not used within this function (default: true)
-%
 %   nStepSize                                       - step size between consecutive analysis windows in quadrature values
 %                                                     (default: 10000)
 %
@@ -99,18 +96,18 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
 % movie options:
 %   Framerate                                       - number of movie frames per second (default: 10)
 %
-% movie-saving options:
-%   MovieSaveDir                                    - directory intended for saving the movie (default: '');
+% Analysis options:
+%   SaveResultData                                  - save the results (default: true)
 %
-%   MovieSaveName                                   - base name intended for the movie file (default: '');
+%   CreateMovie                                     - create the movie (default: true)
 %
-% result-saving options:
-%   SaveMovieData                                   - logical value specifying whether the AnalysisResult structure is
-%                                                     saved to a MATLAB file (default: false)
+%   CreateExtraImages                               - create the extra images (default: true)
 %
-%   MovieDataSaveDir                                - directory intended for saving AnalysisResult (default: '');
+% saving options:
+%   
+% Options.ResultSaveDir                            - save path where the results are saved (Images/Movie), if empty it is automatically generated
 %
-%   MovieDataSaveName                               - filename intended for saving AnalysisResult (default: '');
+% Options.ResultDataSavePath                        - save path where the results raw data is saved          
 %
 %% Output:
 %   This function does not return output arguments.
@@ -139,6 +136,10 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
 
 
     arguments
+        % General option what should be done
+        Options.SaveResultData = true;
+        Options.CreateMovie = true;
+        Options.CreateExtraImages = true;
         %Option for the quadrature selection
         Options.X1 = [];
         Options.X2 = [];
@@ -150,36 +151,31 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
         Options.X1_EdgeIndicesString = [];
         Options.X2_EdgeIndicesString = [];
         % Option for the timeinterval
-        Options.TimeStart = 0;
-        Options.TimeEnd = 0;
+        Options.StartTime = 0;
+        Options.EndTime = 0;
         Options.Times1 = [];
         Options.Times2 = [];
         Options.Times1String = '';
         Options.Times2String = '';
         % Options for the moving average
-        Options.UseMovingAverage = true;
         Options.nStepSize = 10000;
         % Options for the Husimi Q generation
         Options.nQuadratures = 30000;
         Options.Limits_Q = [-10,10]
         Options.Limits_P = [-10,10]
-        Options.Resolution = 0.1;
+        Options.Resolution = 0.2;
         Options.ScaleChannels = true;
         % Options for the analysis
-        Options.FitMethod = 'NLSQ-LAR';
+        Options.FitMethod = 'LAR';
         Options.MonteCarloError = false;
         Options.nMonteCarloIterations = 1000;
         % Options for the movie generation
         Options.Framerate = 10;
-        % Options for the movie saving
-        Options.MovieSaveDir = '';
-        Options.MovieSaveName = '';
-        % Options to save the movie data 
-        Options.SaveMovieData = false;
-        Options.MovieDataSaveDir = '';
-        Options.MovieDataSaveName = '';
+        % Options for saving
+        Options.ResultSaveDir = ''; %% the dir where the results images /movies are saved
+        Options.ResultDataSavePath = '' %% the save path where the raw result data is stored
+     end
 
-    end
 
 
     %% 0. set some default parameter
@@ -223,27 +219,46 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
     [X1,X2] = QST.HusimiQ.Prepare.rescaleQuadsForHusimiQ(Options.X1,Options.X2,ScaleChannels=Options.ScaleChannels);
     
     % get the indices of the dataset inside the chosen time interval
-    [Times_Select,~,~,X1_EdgeIndices_Select,~,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.TimeStart,Options.TimeEnd,Options.Times1,[],[],Options.X1_EdgeIndices,[]);
-    
-    % get the number of subsets % Diese formel scheint falsch zu sein
-    nSubSet = size(X1_EdgeIndices_Select,2);
+    [~,~,~,X1_EdgeIndices_Select,X1_Indices_Select,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.Times1, Options.StartTime, Options.EndTime,EdgeIndices=Options.X1_EdgeIndices);
+    [~,~,~,~,X2_Indices_Select,~,~,~,~,~] = QST.QuadratureSelection.selectQuads_ByTimeInterval(Options.Times2, Options.StartTime, Options.EndTime, EdgeIndices=Options.X2_EdgeIndices);
+    X_Indices_Select = intersect(X1_Indices_Select,X2_Indices_Select);
+
+    % get the number of subsets
+    nSubSet = floor((length(X_Indices_Select)-Options.nQuadratures+Options.nStepSize)/Options.nStepSize);
+
     
     % define the datasets , this can get bigger in RAM but it hopefully is faster
     X1_Set = zeros(Options.nQuadratures,nSubSet);
     X2_Set = zeros(Options.nQuadratures,nSubSet);
     for iSubSet = 1: nSubSet
-        X1_Set(:,iSubSet) = X1(X1_EdgeIndices_Select(1,iSubSet):X1_EdgeIndices_Select(2,iSubSet));
-        X2_Set(:,iSubSet) = X2(X1_EdgeIndices_Select(1,iSubSet):X1_EdgeIndices_Select(2,iSubSet));
+       X1_Set(:,iSubSet) = X1(X_Indices_Select((iSubSet-1)*Options.nStepSize+1:(iSubSet-1)*Options.nStepSize+Options.nQuadratures));
+       X2_Set(:,iSubSet) = X2(X_Indices_Select((iSubSet-1)*Options.nStepSize+1:(iSubSet-1)*Options.nStepSize+Options.nQuadratures));
     end
-    Times = Times_Select;
+    Times = (X1_Indices_Select(1)-1+(1:length(X1_EdgeIndices_Select))*Options.nStepSize+0.5*Options.nQuadratures)/(75.3864*10^6);
 
     %% 2. execute the analysis
-    AnalysisResult(nSubSet) = struct('HusimiQ',[],'Bins_Q',[],'Bins_P',[],'Edges_Q',[],'Edges_P',[],...
-                                     'nTherm',[],'nThermErr',[],'nCoherent',[],'nCoherentErr',[],'nMean',[],'nMeanErr',[],'nRatio',[],'nRatioErr',[],...
-                                     'G2',[],'G2Err',[],'Coherence',[],'CoherenceErr',[],'PoissonError',[],'PoissonErrorCut',[],'HusimiCut',[],'HusimiCutTheory',[]);
+    AnalysisResult(nSubSet) = struct('HusimiQ',[],...
+                                     'Bins_Q',[],...
+                                     'Bins_P',[],...
+                                     'Edges_Q',[],...
+                                     'Edges_P',[],...
+                                     'nTherm',[],...
+                                     'nThermErr',[],...
+                                     'nCoherent',[],...
+                                     'nCoherentErr',[],...
+                                     'nMean',[],...
+                                     'nMeanErr',[],...
+                                     'nRatio',[],...
+                                     'nRatioErr',[],...
+                                     'G2',[],...
+                                     'G2Err',[],...
+                                     'Coherence',[],...
+                                     'CoherenceErr',[],...
+                                     'PoissonError',[],...
+                                     'PoissonErrorCut',[],...
+                                     'HusimiCut',[],...
+                                     'HusimiCutTheory',[]);
     parfor iSubSet = 1:nSubSet
-        disp(iSubSet)
-        disp(Times(iSubSet))
         Result = QST.Main.execAnalysis_HusimiQ_DTS_By2DModel(X1=X1_Set(:,iSubSet),...
                                                              X2=X2_Set(:,iSubSet),...
                                                              Limits_Q=Options.Limits_Q,...
@@ -287,95 +302,153 @@ function [] = createTimeResolvedHusimiMovie_By2DModel(Options)
     g2_Sets = vertcat(AnalysisResult.G2);
     Coherence_Sets = vertcat(AnalysisResult.Coherence);
 
+    % save the results data
+    if Options.SaveResultData && isempty(Options.ResultDataSavePath)
+        if isempty(Options.MatFilePath)
+            error("Submit a valid path in Options.ResultDataSavePath")
+        end
+        Options.ResultDataSavePath = Options.MatFilePath;
 
-   
-    %% 3. create the Movie
-    % set figure properties
-    axis tight manual
-    set(gca,"NextPlot","replacechildren")
+        % create the structure that will be saved
+        OptionStruct = struct();
+        OptionStruct.StartTime = Options.StartTime;
+        OptionStruct.EndTime = Options.EndTime;
+        OptionStruct.ScaleChannels = Options.ScaleChannels;
+        OptionStruct.nStepSize = Options.nStepSize;
+        OptionStruct.nQuadratures = Options.nQuadratures;
+        OptionStruct.Limits_Q = Options.Limits_Q;
+        OptionStruct.Limits_P = Options.Limits_P;
+        OptionStruct.Resolution = Options.Resolution;
+        OptionStruct.FitMethod = Options.FitMethod;
+        OptionStruct.MonteCarloError = Options.MonteCarloError;
+        OptionStruct.nMonteCarloIterations = Options.nMonteCarloIterations;
     
-    % set movie properties
-    if ~exist(Options.MovieSaveDir,'dir')
-        mkdir(Options.MovieSaveDir)
+        ResultStruct = struct();
+        ResultStruct.AnalysisResult = AnalysisResult;
+        ResultStruct.Time = Time_Sets;
+        ResultStruct.nCoherent = nCoherent_Sets;
+        ResultStruct.nTherm = nTherm_Sets;
+        ResultStruct.nMean = nMean_Sets;
+        ResultStruct.G2 = g2_Sets;
+        ResultStruct.Coherence = Coherence_Sets;
+        ResultStruct.Options = OptionStruct;
+
+        QST.Helper.saveStructElement(Options.ResultDataSavePath,'TRHusimi_2D',ResultStruct);
     end
+
+
+    %% 3. create the Movie
+    if Options.CreateMovie
+        if isempty(Options.ResultSaveDir)
+            if isempty(Options.MatFilePath)
+                error("Submit a valid path")
+            else
+                [Dir,~,~] = fileparts(Options.MatFilePath);
+                [Dir,~,~] = fileparts(Dir);
+                Options.ResultSaveDir = strcat(Dir,filesep,"Results",filesep,"TRHusimiQ_2D",filesep,...
+                                               "Ts",string(Options.StartTime),"_","Te",string(Options.EndTime),"__",...
+                                               "nQuad",string(Options.nQuadratures),"__","nStep",string(Options.nStepSize),"__",...
+                                               "GridRes",string(Options.Resolution));
+            end
+        end
+        if ~exist(Options.ResultSaveDir,'dir')
+            mkdir(Options.ResultSaveDir)
+        end
+
+        % Create the plots
+        Movie2D = VideoWriter(strcat(Options.ResultSaveDir,filesep,"2DHistogram.avi"),"Uncompressed AVI");
+        Movie2D.FrameRate = Options.Framerate;
+        Frames = cell([nSubSet,1]);
+        axis tight manual
+        set(gca,"NextPlot","replacechildren")
+        parfor iSubSet = 1:nSubSet
+            clf
+            cla
+            pcolor(AnalysisResult(iSubSet).Bins_Q, AnalysisResult(iSubSet).Bins_P, AnalysisResult(iSubSet).HusimiQ)
+            shading 'flat';
+            axis on;
+            axis equal;
+            colormap hot;
+            xlabel('q')
+            ylabel('p')
+            title(strcat('t = ',string(Time_Sets(iSubSet))))
+            Frames{iSubSet} = getframe(gcf);
+            hold off
+        end
     
-    % Create the plots
-    Movie2D = VideoWriter(fullfile(Options.MovieSaveDir,strcat(Options.MovieSaveName,"-2DHistogram.avi")),"Uncompressed AVI");
-    Movie2D.FrameRate = Options.Framerate;
-    Frames = cell([nSubSet,1]);
-    parfor iSubSet = 1:nSubSet
+        % add the finished plots to a movie
+        open(Movie2D)
+        for iSubSet = 1:nSubSet
+            Movie2D.writeVideo(Frames{iSubSet});
+        end
+        close(Movie2D) 
+    end
+
+
+    %% 4. Create Extra Images
+    if Options.CreateExtraImages
+        %% ensure that the path structure exists
+        if isempty(Options.ResultSaveDir)
+            if isempty(Options.MatFilePath)
+                error("Submit a valid path")
+            else
+                [Dir,~,~] = fileparts(Options.MatFilePath);
+                [Dir,~,~] = fileparts(Dir);
+                Options.ResultSaveDir = strcat(Dir,filesep,Results,filesep,"TRHusimiQ_2D",filesep,...
+                                               "Ts",string(Option.StartTime),"_","Te",string(Option.EndTime),"__",...
+                                               "nQuad",string(Options.nQuadratures),"__","nStep",string(Options.StepSize),"__",...
+                                               "nRes",string(Options.nResolution));
+            end
+        end
+        if ~exist(Options.ResultSaveDir,'dir')
+            mkdir(Options.ResultSaveDir)
+        end
+
+        %% N(t)
         clf
         cla
-        pcolor(AnalysisResult(iSubSet).Bins_Q, AnalysisResult(iSubSet).Bins_P, AnalysisResult(iSubSet).HusimiQ)
-        shading 'flat';
-        axis on;
-        axis equal;
-        colormap hot;
-        xlabel('q')
-        ylabel('p')
-        title(strcat('t = ',string(Time_Sets(iSubSet))))
-        Frames{iSubSet} = getframe(gcf);
+        plot(Time_Sets,nMean_Sets);
+        xlim([Time_Sets(1),Time_Sets(end)])
+        xlabel('t in s')
+        ylabel('Mean Photonumber')
+        title('N(t)')
+        savefig(strcat(Options.ResultSaveDir,filesep,'N(t)','.fig'))
+        
+        %% g^2(0,t)
+        clf
+        cla
+        plot(Time_Sets,g2_Sets);
+        xlim([Time_Sets(1),Time_Sets(end)])
+        ylim([0,2])
+        xlabel('t in s')
+        ylabel('g^2(0,t)')
+        title('g^2(0,t)')
+        savefig(strcat(Options.ResultSaveDir,filesep,'g2(0,t)','.fig'))
+        
+        %% nTherm und nCoherent
+        clf
+        cla
+        plot(Time_Sets,nCoherent_Sets);
+        hold on
+        plot(Time_Sets,nTherm_Sets);
         hold off
+        xlim([Time_Sets(1),Time_Sets(end)])
+        xlabel('t in s')
+        ylabel('Photon number')
+        legend('nCoherent','nThermal')
+        title('Thermal and Coherent Photonnumber')
+        savefig(strcat(Options.ResultSaveDir,filesep,'nTherm(t)-nCoherent(t)','.fig'))
+        
+        %% Quantum Coherence
+        clf
+        cla
+        plot(Time_Sets,Coherence_Sets);
+        xlim([Time_Sets(1),Time_Sets(end)])
+        xlabel('t in s')
+        ylabel('Quantum Coherence')
+        savefig(strcat(Options.ResultSaveDir,filesep,'QuantumCoherence(t)','.fig'))
     end
-    
-    % add the finished plots to a movie
-    open(Movie2D)
-    for iSubSet = 1:nSubSet
-        Movie2D.writeVideo(Frames{iSubSet});
-    end
-    close(Movie2D)
-
-    % save the results
-    if Options.SaveResultData
-         if isequal(Options.MovieDataSaveDir,'') && ~isequal(Options.MatFilePath,'')
-             [Options.MovieDataSaveDir, Options.MovieDataSaveName,~] = fileparts(Options.MatFilePath);
-             Options.MovieDataSaveName = strcat(Options.MovieDataSaveName,'.mat');
-         end
-         SavePath = fullfile(Options.MovieDataSaveDir,Options.MovieDataSaveName);
-         if exist(SavePath,"file")
-             save(SavePath,"AnalysisResult",'-append');
-         else
-             save(SavePath,"AnalysisResult");
-         end
-    end
-
-    %% create Extra Images
-    %% N(t)
-    clf
-    plot(Time_Sets,nMean_Sets);
-    xlim([Time_Sets(1),Time_Sets(end)])
-    xlabel('t in s')
-    ylabel('Mean Photonumber')
-    title('N(t)')
-    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-N(t)-','.fig'))
-    
-    %% g^2(0,t)
-    clf
-    plot(Time_Sets,g2_Sets);
-    xlim([Time_Sets(1),Time_Sets(end)])
-    ylim([0,2])
-    xlabel('t in s')
-    ylabel('g^2(0,t)')
-    title('g^2(0,t)')
-    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-g2(0,t)-','.fig'))
-    
-    %% nTherm und nCoherent
-    clf
-    plot(Time_Sets,nCoherent_Sets);
-    hold on
-    plot(Time_Sets,nTherm_Sets);
-    hold off
-    xlim([Time_Sets(1),Time_Sets(end)])
-    xlabel('t in s')
-    ylabel('Phtono number')
-    legend('nCoherent','nThermal')
-    title('Thermal and Coherent Photonnumber')
-    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-nTherm(t)-nCoherent(t)-','.fig'))
-    
-    %% Quantum Coherence
-    plot(Time_Sets,Coherence_Sets);
-    xlim([Time_Sets(1),Time_Sets(end)])
-    xlabel('t in s')
-    ylabel('Quantum Coherence')
-    savefig(strcat(Options.MovieSaveDir,filesep,Options.MovieSaveName,'-QuantumCoherence(t)-','.fig'))
 end
+
+
+

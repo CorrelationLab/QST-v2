@@ -20,7 +20,7 @@ function [DirPaths] = getDirectoryPaths(RootDirectory,Options)
 
     arguments(Input)
         RootDirectory;
-        Options.IncludeSubDirs=false;
+        Options.IncludeSubDirs=true;
     end
     
     

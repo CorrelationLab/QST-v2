@@ -1,4 +1,4 @@
-function [] = computeWignerTable(SaveDirectory, MaxQ, ResolutionQ, MaxFockState)
+function [] = computeWignerTable(SaveDirectory, MaxQ, ResolutionQ, MaxFockState, Options)
 %% Description:
 %   This function computes a table of constructing functions that are necessary to compute the wigner function from an arbitrary density matrix in fock representation.
 %   To fasten up the computation this function requires a GPU. The table is finally saved in SaveDirectory. the data is saved as 3d arrays where one 
@@ -7,7 +7,7 @@ function [] = computeWignerTable(SaveDirectory, MaxQ, ResolutionQ, MaxFockState)
 %   The integration is then performed in terms of matrix multiplications. 
 %   More information are found in my thesis p. 52
 %% Syntax:
-%   [] = createWignerTable_GPU(Directory, MaxQ, ResolutionQ, MaxFockState)
+%   [] = createWignerTable_GPU(Directory, MaxQ, ResolutionQ, MaxFockState, useGPU=false)
 %
 %% Input:
 % required input values;
@@ -15,6 +15,9 @@ function [] = computeWignerTable(SaveDirectory, MaxQ, ResolutionQ, MaxFockState)
 %   MaxQ;                                           - maximal Q of the considered phase space. The phasespacevariables Q and P then lay in the interval [-MaxQ, MaxQ]
 %   ResolutionQ;                                    - resolution of the phase space
 %   MaxFockState;                                   - maximal fock state up to which components are taken into account
+%   
+%  optional input arguments;
+%   useGPU = false                                  - use a GPU to speed up computation
 %
 %% Output:
 %
@@ -26,6 +29,7 @@ function [] = computeWignerTable(SaveDirectory, MaxQ, ResolutionQ, MaxFockState)
         MaxQ;
         ResolutionQ;
         MaxFockState;
+        Options.useGPU = false;
     end
 
 
@@ -34,15 +38,24 @@ function [] = computeWignerTable(SaveDirectory, MaxQ, ResolutionQ, MaxFockState)
     stepsizeZeta = ResolutionQ;
     
     %% 1. Compute a matrix of all possible occuring values Q+zeta/2 called QplusZetaH
-    Q = gpuArray([-MaxQ:ResolutionQ:MaxQ]);
-    Zeta = gpuArray([-maxZeta:stepsizeZeta:maxZeta]);
+    if Options.useGPU
+        Q = gpuArray([-MaxQ:ResolutionQ:MaxQ]);
+        Zeta = gpuArray([-maxZeta:stepsizeZeta:maxZeta]);
+    else
+        Q = [-MaxQ:ResolutionQ:MaxQ];
+        Zeta = [-maxZeta:stepsizeZeta:maxZeta];
+    end
     nQ = length(Q); % number of Q values
     nZeta = length(Zeta); % number of Zeta values
     QplusZetaH = Q+(Zeta/2).'; % axis1: different Zeta, axis2: different Q
     
     
     %% 2. Compute the projections <n,Q+Zeta/2> ; axis1: variation in Zeta, axis2: variation in Q, axis3: variation in n
-    Projection__n_QplusZetaH = gpuArray(zeros(nZeta,nQ,MaxFockState+1));
+    if  Options.useGPU
+        Projection__n_QplusZetaH = gpuArray(zeros(nZeta,nQ,MaxFockState+1));
+    else
+        Projection__n_QplusZetaH = zeros(nZeta,nQ,MaxFockState+1);
+    end
     Projection__n_QplusZetaH(:,:,1) = pi^(-0.25)*exp(-0.5*QplusZetaH.^2);
     Projection__n_QplusZetaH(:,:,2) = Projection__n_QplusZetaH(:,:,1).*QplusZetaH*sqrt(2);
     for i = [3:MaxFockState+1]
@@ -66,7 +79,11 @@ function [] = computeWignerTable(SaveDirectory, MaxQ, ResolutionQ, MaxFockState)
         mkdir(SaveDirectory)
     end
     for i = 0:MaxFockState
-        W_Pattern = gpuArray(complex(zeros(nP,nQ,MaxFockState+1-i)));
+        if Options.useGPU
+            W_Pattern = gpuArray(complex(zeros(nP,nQ,MaxFockState+1-i)));
+        else
+            W_Pattern = complex(zeros(nP,nQ,MaxFockState+1-i));
+        end
         for j = i+1:MaxFockState+1
             W_Pattern(:,:,j-i) = ((Projection__n_QplusZetaH(:,:,j-i).*Projection__QminusZetaH_m(:,:,j)).'*EXP).';
         end

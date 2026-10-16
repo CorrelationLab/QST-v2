@@ -23,12 +23,14 @@ function [Wigner] = computeWignerFromDensityMatrix(Rho, Directory_WignerTable)
 
     %% 1. Computation based on the main diagonal elements
     W_Pattern = load(strcat(Directory_WignerTable,filesep,"WignerPattern_offD0.mat"));
+    W_Pattern = W_Pattern.W_Pattern;
     Wigner = real(sum(reshape(diag(Rho),1,1,[]).*W_Pattern(:,:,1:size(Rho,1)),3));
     MaxFockState = size(Rho,1)-1;
     
     %% 2. Computation based on the side diagonal elements
     for i = 1:MaxFockState
         W_Pattern = load(strcat(Directory_WignerTable,filesep,"WignerPattern_offD",num2str(i),".mat"));
+        W_Pattern = W_Pattern.W_Pattern;
         D = diag(Rho,i);
         nD = length(D);
         Wigner = Wigner + 2*real(sum(reshape(D,1,1,[]).*W_Pattern(:,:,1:nD),3));

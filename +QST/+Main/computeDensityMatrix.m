@@ -5,7 +5,7 @@ function [Rho, Rho_Var] = computeDensityMatrix(X, PiezoSign, Options)
 %   and it allows to perform an automatic averaging over multiple reconstructed density matrices to minimize errors
 %
 %% Syntax:
-%   [Rho, Rho_Var] = execAnalysis_DensityMatrix(X, PiezoSign, PeriodsPerSegment = 2, PeakThreshold = 0.5, IgnoredSegments = [], Acurracy_Spline = 1e-14, MaxFockState = 50, Iterations = 100, PiezoSegmentsPerRho = 5, RhosPerAverage = 1)
+%   [Rho, Rho_Var] = execAnalysis_DensityMatrix(X, PiezoSign, PeriodsPerSegment = 2, PeakThreshold = 0.5, IgnoredSegments = [], Acurracy_Spline = 1e-14, MaxFockState = 50, nIterations = 100, nPiezoSegmentsPerRho = 5, nRhosPerAverage = 1)
 %
 %% Input:
 % required input values;
@@ -17,10 +17,11 @@ function [Rho, Rho_Var] = computeDensityMatrix(X, PiezoSign, Options)
 %   Options.IgnoredSegments=[]          - array of segments that should be excluded from the analysis. The segments are identified by their segment index 
 %   Options.Accuracy_Spline=1e-14       - spline interpolation accuracy. The value is between 0 and 1. The interpolation accuracy 
 %                                         increases nonlinear with increasing value (see documentation of csaps())
+%   Options.useGPU                      - speed up computation with GPU (default: false)
 %   Options.MaxFockState=50             - highest fock state which is taken into account. The outcome matrix then includes entries from 0 up to MaxFockState
-%   Options.Iterations=100              - number of iterations used in the algorithm
+%   Options.nIterations=100             - number of iterations used in the algorithm
 %   Options.PiezoSegmentsPerRho = 5     - number of piezo segment used for one density matrix reconstruction
-%   Options.RhosPerAverage = 1          - number of reconstructed density matrices used for the final averaging process
+%   Options.nRhosPerAverage = 1         - number of reconstructed density matrices used for the final averaging process
 
 %% Output:
 %   Rho                                - averaged complex density matrix. It has the form of [MaxFockState+1 x MaxFockState+1]
@@ -34,15 +35,16 @@ function [Rho, Rho_Var] = computeDensityMatrix(X, PiezoSign, Options)
         Options.PeriodsPerSegment = 2
         Options.PeakThreshold = 0.5
         Options.IgnoredSegments = []
-        Options.Acurracy_Spline = 1e-14
+        Options.SmoothingSpline_Accuracy = 1e-14
+        Options.useGPU = false;
         Options.MaxFockState = 50;
-        Options.Iterations = 100;
-        Options.PiezoSegmentsPerRho = 5;
-        Options.RhosPerAverage = 1
+        Options.nIterations = 100;
+        Options.nPiezoSegmentsPerRho = 5;
+        Options.nRhosPerAverage = 1
     end
     
     % Reshape data to the required subset
-    X = X(:,:,1:Options.RhosPerAverage*Options.NPiezoSegmentsPerRho);
+    X = X(:,:,1:Options.nRhosPerAverage*Options.nPiezoSegmentsPerRho);
 
     %% Compute Theta
     [Theta, ~, ~] = QST.Helper.computeRelativePhase(X, ...
@@ -51,17 +53,20 @@ function [Rho, Rho_Var] = computeDensityMatrix(X, PiezoSign, Options)
                                                     PeriodsPerSegment=Options.PeriodsPerSegment, ...
                                                     PeakThreshold=Options.PeakThreshold, ...
                                                     IgnoredSegments=Options.IgnoredSegments, ...
-                                                    Acurracy_Spline=Options.Acurracy_Spline);
-    
+                                                    SmoothingSpline_Accuracy=Options.SmoothingSpline_Accuracy);
+    [nPulses,nPieces,nSegments] = size(X);
+    X = reshape(X,[nPulses*nPieces nSegments]);
+
     %% Compute Rho as average over multiple piezo segments. This is necessary as Rho tends to instabilites
-    Rho = zeros(Options.MaxFockState+1,Options.MaxFockState+1,Options.RhosPerAverage);
+    Rho = zeros(Options.MaxFockState+1,Options.MaxFockState+1,Options.nRhosPerAverage);
     i=1;
     k=1;
-    while i <= Options.RhosPerAverage*Options.NPiezoSegmentsPerRho
-        Rho(:,:,k) = QST.DensityMatrix.computeDensityMatrix(reshape(X(:,i:i+Options.NPiezoSegmentsPerRho-1),[],1), ...
-                                                            reshape(Theta(:,i:i+Options.NPiezoSegmentsPerRho-1),[],1), ...
+    while i <= Options.nRhosPerAverage*Options.nPiezoSegmentsPerRho
+        Rho(:,:,k) = QST.DensityMatrix.computeDensityMatrix(reshape(X(:,i:i+Options.nPiezoSegmentsPerRho-1),[],1), ...
+                                                            reshape(Theta(:,i:i+Options.nPiezoSegmentsPerRho-1),[],1), ...
+                                                            useGPU=Options.useGPU,...
                                                             MaxFockState=Options.MaxFockState, ...
-                                                            Iterations=Options.Iterations);
+                                                            nIterations=Options.nIterations);
         k = k+1;
         i = i+Options.nPiezoSegmentsPerRho;
     end

@@ -39,7 +39,7 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels, OffsetType, M
 %   Options.StarHubIncluded = true              - check if the Spectrum instruments ADC card uses the Starhub module 
 %   Options.Preset = ''                         - activate predefined preset to shorten the function call. Use 'FixedPhase' when the phase relation between
 %                                                 local oscillator and signal was intrinsically stabel and modulated by a piezo (LO acts as source of the signal).
-%                                               - Use RandomPhase when the phase relation was random and consecutive quadratures should be uncorrelated
+%                                               - Use "RandomPhase" when the phase relation was random and consecutive quadratures should be uncorrelated
 %                                                 (polariton condensate emission)
 %   Options.IntegrationDutyCycle = 1/3          - width of the integration window used to convert the digitalized values from the adc card via integration to a quadrature value.
 %                                                 The integration window size is given in relation to the time interval between two pulses. 
@@ -48,8 +48,8 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels, OffsetType, M
 %   Options.nMean_Min = 1000000                 - number of consective quadratures used to compute the detector response
 %   Options.Delta = 50                          - order up to which correlations between consecutive quadratures should be removed
 %   
-%% Output:
-% 
+%   Options.StarHub = true                      - the starhub module was included in the experimental measurement setup 
+%   Options.SaveData = false                    - save the raw voltage data as a .mat file
 
 
 
@@ -63,15 +63,18 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels, OffsetType, M
         RemoveDetectorResponse = [true, true, true, true];
         Options.Preset = '';
         % quadrature integration
+        Options.LO_RepetitionRate = 75.3864;
+        Options.RowsForPointwiseVariance = 200;                                             
         Options.IntegrationDutyCycle = 1/3;
+        Options.VectorizePWVarianceComputation = true;
         % detector response removal
         Options.nMean_Min = 1000000;
         Options.Delta = 50;
         %Token
         Options.Token_LOOnly = "LOOnly";
         Options.Token_LOAndSignal = "LOwithSIG";
-        Options.UseLegacySyntax = false;
-        Options.StarHubIncluded = true;
+        Options.StarHub = true;
+        Options.SaveData = false;
     end
 
 
@@ -81,7 +84,7 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels, OffsetType, M
             OffsetType = ["Global","Global", "Global", "Global"];
             ModulatedPhase = [true,true,true,true];
             RemoveDetectorResponse = [false, false, false, false];
-        case ''
+        case 'RandomPhase'
             OffsetType = ["Local", "Local", "Local", "Local"];
             ModulatedPhase = [false, false, false, false];
             RemoveDetectorResponse = [true, true, true, true];
@@ -92,7 +95,7 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels, OffsetType, M
     SubDirectories = QST.File_Managment.getDirectoryPaths(Directory);
     
     %% 2. Compute and save the quadratures for each recorded dataset
-    parfor i = 1:length(SubDirectories)
+    for i = 1:length(SubDirectories)
         Dir = SubDirectories(i);
         FileName_LOOnly = "";
         FileName_LOAndSignal = "";
@@ -107,7 +110,7 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels, OffsetType, M
     
         % 2.3 get the filenames of LOOnly and LOwithSIG with the used tokens
         for Name = FileNames.'
-            if contains(Name, Options.Token_LOonly)
+            if contains(Name, Options.Token_LOOnly)
                 FileName_LOOnly = Name;
             end
             if contains(Name, Options.Token_LOAndSignal)
@@ -124,10 +127,14 @@ function [] = execSeriesQuadratureCalculation(Directory, Channels, OffsetType, M
                                                                                     OffsetType,...
                                                                                     ModulatedPhase,...
                                                                                     RemoveDetectorResponse,...
-                                                                                    Options.IntegrationDutyCycle,...
-                                                                                    Options.nMean_Min,...
-                                                                                    Options.Delta,...
-                                                                                    StarHubIncluded=Options.StarHubIncluded);
+                                                                                    LO_RepetitionRate = Options.LO_RepetitionRate,...
+                                                                                    RowsForPointwiseVariance = Options.RowsForPointwiseVariance,...
+                                                                                    IntegrationDutyCycle = Options.IntegrationDutyCycle,...
+                                                                                    VectorizePWVarianceComputation = Options.VectorizePWVarianceComputation,...
+                                                                                    nMean_Min = Options.nMean_Min,...
+                                                                                    Delta = Options.Delta,...
+                                                                                    StarHub=Options.StarHub,...
+                                                                                    SaveData=Options.SaveData);
     
         % 2.5 save the calculated quadratures
         SaveDirectory = fullfile(Dir,'..');

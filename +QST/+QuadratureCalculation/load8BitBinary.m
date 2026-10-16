@@ -1,4 +1,4 @@
-function [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename, StarHub, Options)
+function [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename, Options)
 %% Description:
 %   This function loads 8-bit binary data recorded with a Spectrum data acquisition card, its configuration file,
 %   and optionally its timestamp file.
@@ -35,7 +35,7 @@ function [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename, St
     arguments
         Directory
         Filename
-        StarHub (1,1) logical = false
+        Options.StarHub (1,1) logical = false
         Options.SaveData (1,1) logical = false
     end
     
@@ -62,7 +62,7 @@ function [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename, St
     NumberOfRecordings = Memsize / Segmentsize;
     
     %% 2. Get active-channel information
-    if StarHub
+    if Options.StarHub
         ChannelNames = "Channel0" + (1:4);
     else
         ChannelNames = "Channel0" + (0:3);
@@ -83,7 +83,7 @@ function [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename, St
     DatafileID = fopen(Filepath_Raw, 'r');
     assert(DatafileID ~= -1, 'Could not open raw data file.');
     
-    if StarHub
+    if Options.StarHub
         CardIDs = [ChannelInfo.ADC_CardID_I32];
         InputIDs = [ChannelInfo.ADC_InputID_I32];
         ChannelsPerCard = arrayfun(@(iCard) sum(CardIDs == iCard), 0:max(CardIDs));
@@ -115,13 +115,13 @@ function [Data8bit, Config, Timestamps] = load8BitBinary(Directory, Filename, St
     fclose(DatafileID);
     
     % Convert StarHub data from physical card/input order to configuration channel order.
-    if StarHub
+    if Options.StarHub
         [~, ChannelOrder] = sort(CardIDs * 4 + InputIDs);
         Data8bit = Data8bit(:, :, ChannelOrder);
     end
     
     % Preserve the original two-dimensional output for a single non-StarHub channel.
-    if ~StarHub && Channelnumber == 1
+    if ~Options.StarHub && Channelnumber == 1
         Data8bit = Data8bit(:, :, 1);
     end
     

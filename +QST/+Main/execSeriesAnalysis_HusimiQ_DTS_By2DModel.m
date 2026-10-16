@@ -1,4 +1,4 @@
-function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
+function [] = execSeriesAnalysis_HusimiQ_DTS_By2DModel(RootDirectory,Channel,Options)
 %% Description:
 %   This function performs a Husimi Q-distribution analysis based on the phase-averaged displaced thermal state
 %   (DTS) model for all MATLAB measurement files found recursively in RootDirectory.
@@ -80,13 +80,13 @@ function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
 %                                                     (default: 1000)
 %
 %   FitMethod                                       - fitting method passed to the DTS analysis function
-%                                                     (default: 'NLSQ-LAR')
+%                                                     (default: 'LAR')
 %
 % plotting options:
 %   SaveFigure                                      - logical value specifying whether generated Husimi Q figures
 %                                                     are saved (default: true)
 %
-%   FigureSaveDirName                               - name of the figure-output directory created relative to the
+%   FigureSaveDir                               - name of the figure-output directory created relative to the
 %                                                     parent directory of each measurement file (default: '')
 %
 %   plot2D                                          - logical value specifying whether the two-dimensional Husimi
@@ -156,13 +156,14 @@ function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
         Options.Limits_Q = [-10,10];
         Options.Limits_P = [-10,10];
         Options.Resolution = 0.1;
+        Options.ResultSaveVariable = 'Results_HusimiQ_DTS';
         % Options for the PDTS analysis
         Options.MonteCarloError = true;
         Options.nMonteCarloIterations = 1000;
-        Options.FitMethod = 'NLSQ-LAR';
+        Options.FitMethod = 'LAR';
         %Options for the plots
         Options.SaveFigure = true;
-        Options.FigureSaveDirName = '';
+        Options.FigureSaveDir = '';
         Options.plot2D = true;
         Options.FigureSaveName_2D = 'HusimiQ-2D';
         Options.ShowColorBar_2D = true;
@@ -187,7 +188,7 @@ function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
             Options.X1_EdgeIndicesString = '';
             Options.X2_EdgeIndicesString = '';
             Options.ResultSaveVariable = 'Results_HusimiQ_DTS';
-            Options.FigureSaveDirName = 'Results HusimiQ DTS';
+            Options.FigureSaveDir = 'Results HusimiQ DTS';
             Options.FigureSaveName_2D = 'HusimiQ-2D';
             Options.FigureSaveName_1D = 'HusimiQ-1D';
         case 'CondensateOnly'
@@ -198,7 +199,7 @@ function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
             Options.X2_EdgeIndicesString = [strcat("Results_N_G2_TimeResolved.Channel",string(Channel(2)),".EdgeIndices_High"),...
                                             strcat("Results_N_G2_TimeResolved.Channel",string(Channel(2)),".EdgeIndices")];
             Options.ResultSaveVariable = 'Results_HusimiQ_DTS_Condensate';
-            Options.FigureSaveDirName = 'Results HusimiQ DTS Condensate';
+            Options.FigureSaveDir = 'Results HusimiQ DTS Condensate';
             Options.FigureSaveName_2D = 'HusimiQ-2D-Condensate';
             Options.FigureSaveName_1D = 'HusimiQ-1D-Condensate';
         case 'PulseSelected'
@@ -209,7 +210,7 @@ function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
             Options.X2_EdgeIndicesString = [strcat("Results_N_G2_TimeResolved.Channel",string(Channel(2)),".EdgeIndices_Select"),...
                                             strcat("Results_N_G2_TimeResolved.Channel",string(Channel(2)),".EdgeIndices")];
             Options.ResultSaveVariable = 'Results_HusimiQ_DTS_PulseSelected';
-            Options.FigureSaveDirName = 'Results HusimiQ DTS PulseSelected';
+            Options.FigureSaveDir = 'Results HusimiQ DTS PulseSelected';
             Options.FigureSaveName_2D = 'HusimiQ-2D-PulseSelected';
             Options.FigureSaveName_1D = 'HusimiQ-1D-PulseSelected';
         otherwise
@@ -230,10 +231,11 @@ function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
         CurrentFilePath = InputFilePaths(i);
     
         %% 2. set the params for the saving the figures
-        DirParts = split(CurrentFilePath,filesep);
-        DirParts = DirParts(1:end-2);
-        ParentDir = join(DirParts,filesep);
-        FigureSaveDir = fullfile(ParentDir,Options.FigureSaveDirName);
+
+        % data savepath
+        [Dir,~,~] = fileparts(CurrentFilePath);
+        [Dir,~,~] = fileparts(Dir);
+        FigureSaveDir = fullfile(Dir,"Results",Options.FigureSaveDir);
         [ResultSaveDir,ResultSaveName,~] = fileparts(CurrentFilePath);
         ResultSaveName = strcat(ResultSaveName,'.mat');
     
@@ -264,6 +266,6 @@ function [] = execSeriesAnalysis_HusimiQ_DTS(RootDirectory,Channel,Options)
                                                     SaveResults=Options.SaveResults,...
                                                     ResultSaveDir=ResultSaveDir,...
                                                     ResultSaveName=ResultSaveName,...
-                                                    ResultSaveVariable=Options.ResultSaveVariable)
+                                                    ResultSaveVariable=Options.ResultSaveVariable);
     end
 end

@@ -23,7 +23,7 @@ function [Y_Smoothed] = computeSmoothedCrossCorr(Xa,Xb,Options)
     arguments(Input)
         Xa
         Xb
-        Options.Accuracy_Spline {mustBeInRange(Options.Accuracy_Spline,0,1)} = 1e-14;
+        Options.SmoothingSpline_Accuracy {mustBeInRange(Options.SmoothingSpline_Accuracy,0,1)} = 1e-14;
     end
 
     % calculate cross correlation between Xa and Xb
@@ -33,5 +33,5 @@ function [Y_Smoothed] = computeSmoothedCrossCorr(Xa,Xb,Options)
     [nPulses,nPieces,nSegments] = size(XProd);
     y = reshape(XProd,[nPulses*nPieces nSegments]);
     x = [1:nPulses*nPieces];
-    Y_Smoothed = transpose(csaps(x,y',Options.Accuracy_Spline,x));
+    Y_Smoothed = transpose(csaps(x,y',Options.SmoothingSpline_Accuracy,x));
 end

@@ -1,4 +1,4 @@
-function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
+function [ResultStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
 %% Description:
 %   This function generates and analyses a radial, phase-integrated Husimi Q distribution from two quadrature
 %   datasets using the phase-averaged displaced thermal state (PDTS) model.
@@ -17,8 +17,8 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
 %   symmetric, as this property cannot be determined from the radial distribution alone.
 %
 %% Syntax:
-%   SaveStruct = execAnalysis_HusimiQ_DTS_By1DModel()
-%   SaveStruct = execAnalysis_HusimiQ_DTS_By1DModel(Options)
+%   ResultStruct = execAnalysis_HusimiQ_DTS_By1DModel()
+%   ResultStruct = execAnalysis_HusimiQ_DTS_By1DModel(Options)
 %
 %% Input:
 % name-value input options:
@@ -38,20 +38,20 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
 %
 %   X2_EdgeIndices                                  - start and end indices defining data subsets of X2 (default: [])
 %
-%   InputFilePath                                   - path to a MATLAB file from which quadrature and index data can
+%   MatFilePath                                   - path to a MATLAB file from which quadrature and index data can
 %                                                     be loaded (default: '')
 %
-%   X1String                                        - variable name of X1 in InputFilePath (default: '')
+%   X1String                                        - variable name of X1 in MatFilePath (default: '')
 %
-%   X2String                                        - variable name of X2 in InputFilePath (default: '')
+%   X2String                                        - variable name of X2 in MatFilePath (default: '')
 %
-%   X1_IndicesString                                - variable name of X1_Indices in InputFilePath (default: '')
+%   X1_IndicesString                                - variable name of X1_Indices in MatFilePath (default: '')
 %
-%   X2_IndicesString                                - variable name of X2_Indices in InputFilePath (default: '')
+%   X2_IndicesString                                - variable name of X2_Indices in MatFilePath (default: '')
 %
-%   X1_EdgeIndicesString                            - variable name of X1_EdgeIndices in InputFilePath (default: '')
+%   X1_EdgeIndicesString                            - variable name of X1_EdgeIndices in MatFilePath (default: '')
 %
-%   X2_EdgeIndicesString                            - variable name of X2_EdgeIndices in InputFilePath (default: '')
+%   X2_EdgeIndicesString                            - variable name of X2_EdgeIndices in MatFilePath (default: '')
 %
 % quadrature-rescaling options:
 %   ScaleChannels                                   - logical value specifying whether the quadrature channels are
@@ -67,10 +67,10 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
 %
 % PDTS-analysis options:
 %   FitMethod                                       - name of the fit method included in the saved figure filename
-%                                                     (default: 'NLSQ-LAR')
+%                                                     (default: 'LAR')
 %
 % plotting options:
-%   plotData                                        - logical value specifying whether the radial Husimi Q
+%   createFigure                                    - logical value specifying whether the radial Husimi Q
 %                                                     distribution and its fitted theory curve are plotted
 %                                                     (default: true)
 %
@@ -80,23 +80,22 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
 %   SaveFigure                                      - logical value specifying whether the generated figure is saved
 %                                                     (default: true)
 %
-%   FigureSaveDir                                   - directory in which the figure is saved (default: '')
+%   FigureSaveDir                                   - directory in which the figure is saved (default: '').If default
+%                                                     it is svaed in a default Results directory next to the 'mat-data' directory
 %
 %   SaveName                                        - base name of the saved figure (default: 'HusimiQ-PhiIntegrated')
 %
 % result-saving options:
-%   SaveResults                                     - logical value specifying whether SaveStruct is saved to a MATLAB
+%   SaveResultData                                  - logical value specifying whether ResultStruct is saved to a MATLAB
 %                                                     file (default: false)
 %
-%   ResultSaveDir                                   - directory in which the result file is saved (default: '')
+%   ResultDataSavePath                              - directory in which the result file is saved (default: ''). If default and if an initial
+%                                                     matfile is given, the data is saved as a struct inside the matfile.  
 %
-%   ResultSaveName                                  - name of the result file (default: '')
 %
-%   ResultSaveVariable                              - variable name under which SaveStruct is stored in the result file
-%                                                     (default: 'Results_HusimiQ_RadialFit')
 %
 %% Output:
-%   SaveStruct                                      - structure containing the radial Husimi Q distribution and
+%   ResultStruct                                    - structure containing the radial Husimi Q distribution and
 %                                                     PDTS analysis results:
 %
 %       HusimiQ_Radial                              - normalized radial, phase-integrated Husimi Q distribution
@@ -109,6 +108,7 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
 %       G2, G2Err                                   - second-order correlation function g^{(2)}(0) and its
 %                                                     uncertainty
 %       Coherence, CoherenceErr                     - quantum coherence and its propagated uncertainty
+%       Options                                     - includes the chosen analysis parameter
 %
 %% Notes:
 %   The radial coordinate is calculated as
@@ -134,7 +134,7 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
         Options.X2_Indices = [];
         Options.X1_EdgeIndices = [];
         Options.X2_EdgeIndices = [];
-        Options.InputFilePath = '';
+        Options.MatFilePath = '';
         Options.X1String = '';
         Options.X2String = '';
         Options.X1_IndicesString = '';
@@ -147,20 +147,14 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
         Options.Limits_R = 10;
         Options.Resolution = 0.01;
         % Options for the PDTS analysis
-        %Options.MonteCarloError = true;
-        %Options.nMonteCarloIterations = 1000;
-        Options.FitMethod = 'NLSQ-LAR';
+        Options.FitMethod = 'LAR';
         %Options for the plots
-        Options.plotData = true;
+        Options.createFigure = true;
         Options.ShowLegend = true;
-        Options.SaveFigure = true;
-        Options.FigureSaveDir = '';
-        Options.SaveName = 'HusimiQ-PhiIntegrated';                          
+        Options.FigureSaveDir = '';                          
         % save the results
-        Options.SaveResults = false;
-        Options.ResultSaveDir = '';
-        Options.ResultSaveName = '';
-        Options.ResultSaveVariable = 'Results_HusimiQ_RadialFit';
+        Options.SaveResultData = true;
+        Options.ResultDataSavePath = '';
     end
 
 
@@ -172,7 +166,7 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
                                                               X2_Indices=Options.X2_Indices,...
                                                               X1_EdgeIndices=Options.X1_EdgeIndices,...
                                                               X2_EdgeIndices=Options.X2_EdgeIndices,...
-                                                              FilePath=Options.InputFilePath,...
+                                                              FilePath=Options.MatFilePath,...
                                                               X1String=Options.X1String,...
                                                               X2String=Options.X2String,...
                                                               X1_IndicesString=Options.X1_IndicesString,...
@@ -196,9 +190,9 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
     [HusimiQ_Radial] = histcounts(XR,Edges_R,Normalization="pdf");
     
     % save the results into the struct
-    SaveStruct.HusimiQ_Radial = HusimiQ_Radial;
-    SaveStruct.Bins_R = Bins_R;
-    SaveStruct.Edges_R = Edges_R;
+    ResultStruct.HusimiQ_Radial = HusimiQ_Radial;
+    ResultStruct.Bins_R = Bins_R;
+    ResultStruct.Edges_R = Edges_R;
 
 
     %% 4. analyze the Husimi Q distribution in the model of the displaced thermal state, state needs to be phaseaveraged
@@ -208,7 +202,7 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
     % Get start parameter:
 
     % Execute the fit
-    [Params,gof,~] = fit(Bins_R(:),HusimiQ_Radial(:),FitFunction,'StartPoint', [1,5],'Lower',[0,0],'Robust','LAR' );
+    [Params,gof,~] = fit(Bins_R(:),HusimiQ_Radial(:),FitFunction,'StartPoint', [1,5],'Lower',[0,0],'Robust',Options.FitMethod);
     % Store the found values for coherent and thermal photon number
     nTherm = Params.a1;
     nCoherent = Params.b1;
@@ -239,23 +233,41 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
     % calculate the Fit function based on the displaced thermal state model to be able to compare the quality of the fit
     HusimiQ_Radial_Theory = 2*pi*Bins_R.*(pi*(nTherm+1))^-1 .*exp(-(Bins_R.^2 + nCoherent)/(nTherm+1)) .* besseli(0,2*Bins_R*sqrt(nCoherent)/(nTherm+1));
 
-    % save the results from the PDTS analysis into the savestruct
-    SaveStruct.nTherm = nTherm;
-    SaveStruct.nThermErr = nThermErr;
-    SaveStruct.nCoherent = nCoherent;
-    SaveStruct.nCoherentErr = nCoherentErr;
-    SaveStruct.nRatio = nRatio;
-    SaveStruct.nRatioErr = nRatioErr; 
-    SaveStruct.G2 = G2;
-    SaveStruct.G2Err = G2Err;
-    SaveStruct.Coherence = Coherence;
-    SaveStruct.CoherenceErr = CoherenceErr;
-    SaveStruct.HusimiQ_Radial = HusimiQ_Radial;
-    SaveStruct.HusimiQ_Radial_Theory = HusimiQ_Radial_Theory;
+    % create the structure that will be saved
+    OptionStruct = struct();
+    OptionStruct.ScaleChannels = Options.ScaleChannels;
+    OptionStruct.Limits_R = Options.Limits_R;
+    OptionStruct.Resolution = Options.Resolution;
+    OptionStruct.FitMethod = Options.FitMethod;
+
+    ResultStruct.nTherm = nTherm;
+    ResultStruct.nThermErr = nThermErr;
+    ResultStruct.nCoherent = nCoherent;
+    ResultStruct.nCoherentErr = nCoherentErr;
+    ResultStruct.nRatio = nRatio;
+    ResultStruct.nRatioErr = nRatioErr; 
+    ResultStruct.G2 = G2;
+    ResultStruct.G2Err = G2Err;
+    ResultStruct.Coherence = Coherence;
+    ResultStruct.CoherenceErr = CoherenceErr;
+    ResultStruct.HusimiQ_Radial = HusimiQ_Radial;
+    ResultStruct.HusimiQ_Radial_Theory = HusimiQ_Radial_Theory;
+    ResultStruct.Options = OptionStruct;
+
+    % Save the Results
+    if Options.SaveResultData && isempty(Options.ResultDataSavePath)
+        if isempty(Options.MatFilePath)
+            error("Submit a valid path in Options.ResultDataSavePath")
+        else
+            Options.ResultDataSavePath = Options.MatFilePath;
+        end
+        QST.Helper.saveStructElement(Options.ResultDataSavePath,'Husimi_1D',ResultStruct);
+    end
+    
 
 
-    %% 5. Plot the 2D Distribution
-    if Options.plotData
+    %% 6. Plot the 2D Distribution
+    if Options.createFigure
         % 1. create 1D Graph for the Data
         Fig(1) = figure;
         Line = plot(Bins_R, HusimiQ_Radial,LineWidth=1);
@@ -278,29 +290,30 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By1DModel(Options)
         Resolution = abs(Bins_R(2)-Bins_R(1));
         Axes.XLim = [Bins_R(1)-Resolution/2, Bins_R(end)+Resolution/2];
 
-        % 4. Save the plot
-        if Options.SaveFigure
-            assert(~isequal(Options.FitMethod,''),'No Fitmethod given');
-            SaveNameFull = strcat(Options.SaveName, '-Resolution', num2str(Resolution), '-FitMethod-', Options.FitMethod, '-IncludesResults-', string(Options.ShowLegend),'.fig');
-            if ~exist(Options.FigureSaveDir,'dir')
-                mkdir(Options.FigureSaveDir);
-            end
-            SavePath = fullfile(Options.FigureSaveDir, SaveNameFull);
-            savefig(Fig,SavePath);
-        end
-    end
 
-    %% 7. Save the Results
-    if Options.SaveResults
-        ResultSavePath = fullfile(Options.ResultSaveDir,Options.ResultSaveName);
-        eval([Options.ResultSaveVariable '= SaveStruct;']); % rename the Variable . This is a bad design
-        if exist(ResultSavePath,'file')
-            save(ResultSavePath,Options.ResultSaveVariable, '-append');
-        else
-            if ~exist(Options.ResultSaveDir,'dir')
-                mkdir(Options.ResultSaveDir);
+        Options.SaveFigure = true;
+        Options.FigureSaveDir = '';
+        Options.SaveName = 'HusimiQ-PhiIntegrated';
+
+
+
+        % 4. Save the plot
+        if isempty(Options.FigureSaveDir)
+            if isempty(Options.MatFilePath)
+                error("Submit a valid path in Options.FigureSavePath")
+            else
+                [Dir,~,~] = fileparts(Options.MatFilePath);
+                [Dir,~,~] = fileparts(Dir);
+                Options.FigureSaveDir = strcat(Dir,filesep,"Results",filesep,"HusimiQ_DTS_1D");
             end
-            save(ResultSavePath,Options.ResultSaveVariable);
         end
+
+        if ~exist(Options.FigureSaveDir,'dir')
+            mkdir(Options.FigureSaveDir);
+        end
+
+       SaveName = strcat('Resolution', num2str(Resolution), '-FitMethod-', Options.FitMethod, '-IncludesResults-', string(Options.ShowLegend),'.fig');
+       SavePath = fullfile(Options.FigureSaveDir, SaveName);
+       savefig(Fig,SavePath);
     end
 end

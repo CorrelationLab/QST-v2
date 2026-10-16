@@ -55,7 +55,7 @@ function [ X ] = integratePulses( Data8bit, Config, Options)
     arguments(Input)
         Data8bit;
         Config;
-        Options.MinPeakDistance
+        Options.LO_RepetitionRate = 75.3864;
         Options.RowsForPointwiseVariance=200;
         Options.IntegrationDutyCycle=1/3;
         Options.VectorizePWVarianceComputation=false;
@@ -66,7 +66,7 @@ function [ X ] = integratePulses( Data8bit, Config, Options)
     [nRows, nSegments, nChannels] = size(Data8bit);
     Xpointwise = double(Data8bit(:,1:min(Options.RowsForPointwiseVariance, nSegments),:));
     Xpointwise = Xpointwise - mean(Xpointwise,1);
-    if Options.VectorizePWvarianceComputation % full vectorized is faster but consumes more memory
+    if Options.VectorizePWVarianceComputation % full vectorized is faster but consumes more memory
         PointwiseVariance = squeeze(var(double(Xpointwise),0,2));
     else
         PointwiseVariance = zeros(nRows,1);
@@ -77,17 +77,17 @@ function [ X ] = integratePulses( Data8bit, Config, Options)
     
     %% 2. Compute the Pulses    
     % Set options for findpeaks
-    ADC_SamplingRate = Config.SpectrumCard.Clock.SamplingRate0x28MHz0x29_DBL;
+    ADC_SamplingRate = Config.SpectrumCard.Clock.SamplingRate_MHz__DBL;
     MinPeakDistance = floor(ADC_SamplingRate / 125); % this corresponds to 10 points at an ADC sampling rate of 1.25 GHz
     MinPeakHeight = 0.5*mean(PointwiseVariance,1);
     PulseCenter = cell([nChannels,1]);
-    Theory_SamplesPerPulse = (ADC_SamplingRate / Options.LO_RepetitionRate) * nRows;
+    Theory_nPulses = (Options.LO_RepetitionRate / ADC_SamplingRate) * nRows;
     % Find the locations of the pulse centers
     for iCh = 1:nChannels
         [~,PulseCenter{iCh}] = findpeaks(PointwiseVariance(:,iCh),MinPeakDistance=MinPeakDistance,MinPeakHeight=MinPeakHeight(iCh));
         Experiment_nPulses = length(PulseCenter{iCh});
-        if abs(-Theory_SamplesPerPulse) > 3
-            warning(["Warning: ", string(Theory_SamplesPerPulse), " are expected but ", string(Experiment_nPulses), "have been found !"])
+        if abs(Experiment_nPulses-Theory_nPulses) > 3
+            warning(strcat("Warning: ", string(Theory_nPulses), " are expected but ", string(Experiment_nPulses), " have been found !"))
         end
         PulseCenter{iCh} = PulseCenter{iCh}.';
         PulseCenter{iCh} = PulseCenter{iCh}(2:end-1); % remove the first and last pulse to ensure that the integration window does exceed the segment 

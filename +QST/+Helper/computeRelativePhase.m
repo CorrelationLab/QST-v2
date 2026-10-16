@@ -33,11 +33,11 @@ function [Theta, Theta_Absolute, Y_Smoothed] = computeRelativePhase(Xa,Xb, Piezo
         Options.PeriodsPerSegment {mustBeNonnegative} = 2
         Options.PeakThreshold {mustBeInRange(Options.PeakThreshold,0,1)} = 0.5
         Options.IgnoredSegments = []
-        Options.Smoothing_Accuracy_Spline {mustBeInRange(Options.Smoothing_Accuracy_Spline,0,1)} = 1e-14;
+        Options.SmoothingSpline_Accuracy {mustBeInRange(Options.SmoothingSpline_Accuracy,0,1)} = 1e-14;
     end
 
     % Calculate the smoothed cross correlation between Xa and Xb
-    Y_Smoothed = QST.Helper.computeSmoothedCrossCorr(Xa,Xb,Accuracy_Spline=Options.Smoothing_Accuracy_Spline);
+    Y_Smoothed = QST.Helper.computeSmoothedCrossCorr(Xa,Xb,SmoothingSpline_Accuracy=Options.SmoothingSpline_Accuracy);
 
     % Set dimensions of the used data 
     [nPointsPerSegment,nSegments] = size(Y_Smoothed);

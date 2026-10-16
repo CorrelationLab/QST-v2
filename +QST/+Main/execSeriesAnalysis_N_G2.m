@@ -35,7 +35,7 @@ function []  = execSeriesAnalysis_N_G2(RootDirectory,Channels,Options)
 %                                                     values (default: 1000)
 %
 %   Samplerate                                      - quadrature sampling rate in samples per second, used to calculate
-%                                                     the time axis (default: 74.3864)
+%                                                     the time axis (default: 75.3864)
 %
 %% Output:
 %   This function does not return output arguments.
@@ -56,8 +56,7 @@ function []  = execSeriesAnalysis_N_G2(RootDirectory,Channels,Options)
         Options.Averagemethod = 'moving';
         Options.AverageSize = 10000;
         Options.StepSize = 1000;
-        Options.Samplerate = 74.3864;
-        Options.VacuumCorrection = false;
+        Options.Samplerate = 75.3864;
     end
 
 

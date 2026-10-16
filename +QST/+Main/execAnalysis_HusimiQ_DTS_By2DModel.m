@@ -160,7 +160,7 @@ function [SaveStruct] = execAnalysis_HusimiQ_DTS_By2DModel(Options)
         % Options for the PDTS analysis
         Options.MonteCarloError = true;
         Options.nMonteCarloIterations = 1000;
-        Options.FitMethod = 'NLSQ-LAR';
+        Options.FitMethod = 'LAR';
         %Options for the plots
         Options.SaveFigure = true;
         Options.FigureSaveDir = '';

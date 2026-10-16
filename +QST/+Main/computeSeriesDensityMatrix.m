@@ -18,7 +18,7 @@ function [] = computeSeriesDensityMatrix(Directory, X_String,PiezoInfos_String, 
 %
 %   computeSeriesDensityMatrix(Directory, "X1", "PiezoInfos")
 %
-%   computeSeriesDensityMatrix(Directory, "X1", "PiezoInfos", MaxFockState=75, Iterations=200)
+%   computeSeriesDensityMatrix(Directory, "X1", "PiezoInfos", MaxFockState=75, nIterations=200)
 %
 %% Input:
 % required input values:
@@ -42,15 +42,17 @@ function [] = computeSeriesDensityMatrix(Directory, X_String,PiezoInfos_String, 
 %   Acurracy_Spline                                 - accuracy parameter used in spline-based calculations
 %                                                     (default: 1* 10^-14)
 %
+%   useGPU                                          - speed up computation with GPU (default: false)                                  
+%
 %   MaxFockState                                    - highest Fock state included in the reconstructed density matrix
 %                                                     (default: 50)
 %
-%   Iterations                                      - number of reconstruction iterations (default: 100)
+%   nIterations                                     - number of reconstruction iterations (default: 100)
 %
-%   PiezoSegmentsPerRho                             - number of piezo segments used to reconstruct one density matrix
+%   nPiezoSegmentsPerRho                            - number of piezo segments used to reconstruct one density matrix
 %                                                     (default: 5)
 %
-%   RhosPerAverage                                  - number of reconstructed density matrices combined per averaged
+%   nRhosPerAverage                                  - number of reconstructed density matrices combined per averaged
 %                                                     output density matrix (default: 1)
 %
 %% Output:
@@ -104,11 +106,12 @@ function [] = computeSeriesDensityMatrix(Directory, X_String,PiezoInfos_String, 
         PiezoInfos_String;
         Options.PeriodsPerSegment = 2;
         Options.PeakThreshold = 0.5;
-        Options.Acurracy_Spline = 1e-14;
+        Options.SmoothingSpline_Accuracy = 1e-14;
+        Options.useGPU = false;
         Options.MaxFockState = 50;
-        Options.Iterations = 100;
-        Options.PiezoSegmentsPerRho = 5;
-        Options.RhosPerAverage = 1;
+        Options.nIterations = 100;
+        Options.nPiezoSegmentsPerRho = 5;
+        Options.nRhosPerAverage = 1;
     end
 
     
@@ -132,12 +135,13 @@ function [] = computeSeriesDensityMatrix(Directory, X_String,PiezoInfos_String, 
                                                        StartDirection,...
                                                        PeriodsPerSegment=Options.PeriodsPerSegment, ...
                                                        PeakThreshold=Options.PeakThreshold,...
-                                                       Acurracy_Spline=Options.Acurracy_Spline,...
+                                                       SmoothingSpline_Accuracy=Options.SmoothingSpline_Accuracy,...
                                                        IgnoredSegments=[],...
+                                                       useGPU = Options.useGPU,...
                                                        MaxFockState=Options.MaxFockState,...
-                                                       Iterations=Options.Iterations,...
-                                                       PiezoSegmentsPerRho=Options.PiezoSegmentsPerRho,...
-                                                       RhosPerAverage=Options.RhosPerAverage);
+                                                       nIterations=Options.nIterations,...
+                                                       nPiezoSegmentsPerRho=Options.nPiezoSegmentsPerRho,...
+                                                       nRhosPerAverage=Options.nRhosPerAverage);
 
         % save the results
         VariablesInFile = who('-file', Paths(i));
@@ -154,9 +158,9 @@ function [] = computeSeriesDensityMatrix(Directory, X_String,PiezoInfos_String, 
         end
         DensityMatrix(end + 1).Rho = Rho;
         DensityMatrix(end).varRho = Rho_Var;
-        DensityMatrix(end).nPiezoSegmentsPerRho = Options.PiezoSegmentsPerRho;
-        DensityMatrix(end).nIterations = Options.Iterations;
-        DensityMatrix(end).nRhosPerAverage = Options.RhosPerAverage;
+        DensityMatrix(end).nPiezoSegmentsPerRho = Options.nPiezoSegmentsPerRho;
+        DensityMatrix(end).nIterations = Options.nIterations;
+        DensityMatrix(end).nRhosPerAverage = Options.nRhosPerAverage;
         save(FilePath, 'DensityMatrix', '-append');
     end
 end

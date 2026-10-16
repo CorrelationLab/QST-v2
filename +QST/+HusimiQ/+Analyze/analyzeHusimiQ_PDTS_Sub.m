@@ -107,7 +107,7 @@ function [nCoherent, nCoherentErr, nTherm, nThermErr,nMean, nRatio, G2, Coherenc
     FitFunction = fittype('0.5*Resolution^2*(pi*(nTherm+1))^-1 *exp(-(x.^2 + nCoherent)/(nTherm+1)) .* besseli(0,2*x*sqrt(nCoherent)/(nTherm+1))','problem','Resolution'); 
     
     %The Fit
-    [Params,gof,~] = fit(alphaFit,HusimiFit,FitFunction,'problem',Resolution,'StartPoint', [nTherm,nCoherent,1e-4],'Lower', [0,0], 'Robust', Options.FitMethod);
+    [Params,gof,~] = fit(alphaFit,HusimiFit,FitFunction, 'problem', Resolution, 'StartPoint',[nTherm,nCoherent],'Lower',[0,0], 'Robust', Options.FitMethod);
     
     % get fitparameter back
     nTherm = Params.nTherm;

@@ -37,5 +37,7 @@ function [X_Select,XIndices_Select] = selectQuads_ByEdgeIndices(X, EdgeIndices)
     %% 2. Return the asscoiated quadrature subset 
     if ~isempty(X)
         X_Select = X(XIndices_Select);
+    else
+        X_Select = [];
     end
 end
